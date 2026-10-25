@@ -1,0 +1,3075 @@
+@charset "UTF-8";
+@font-face {
+  font-family: "Nunito";
+  src: url("../assets/fonts/Nunito-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  min-height: 100%;
+  overflow: hidden;
+  background-color: #010207;
+}
+html.dashboard-loading body {
+  opacity: 0;
+}
+html body {
+  min-height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  opacity: 1;
+  transition: opacity 140ms ease-out;
+  --tile-width: 90px;
+  --tile-height: 90px;
+  --tile-padding: 6px;
+  --icon-box-size: 50px;
+  --icon-size: 46px;
+  --tile-opacity: 36%;
+  --tile-blur: 10px;
+  --tile-border-opacity: .07;
+  --tile-hover-strength: 30%;
+  --control-radius: 14px;
+  --scene-ink: #f5f7ff;
+  --scene-tile-opacity: 30%;
+  --settings-bg: #111620;
+  --settings-surface: #202738;
+  --settings-surface-hover: #2a3348;
+  --settings-border: #5a6680;
+  --settings-text: #f5f7ff;
+  --settings-accent: #91a4cc;
+  --text: #ffffff;
+  --muted: rgba(255, 255, 255, .76);
+  --accent: #ffffff;
+  --label-color: var(--text);
+  --glass-surface: rgba(255, 255, 255, .035);
+  --glass-surface-hover: rgba(255, 255, 255, .075);
+  --glass-border: rgba(255, 255, 255, .12);
+  --glass-border-hover: rgba(255, 255, 255, .20);
+  --glass-shadow: 0 4px 14px rgba(20, 24, 38, .035), inset 0 1px rgba(255, 255, 255, .07);
+  --glass-blur: 8px;
+  --select-option-background: #282b3a;
+  --select-option-text: #ffffff;
+  --overlay-bg: var(--settings-bg);
+  --overlay-surface: var(--settings-surface);
+  --overlay-surface-hover: var(--settings-surface-hover);
+  --overlay-border: var(--settings-border);
+  --overlay-text: var(--settings-text);
+  --overlay-text-muted: color-mix(in srgb, var(--overlay-text) 66%, transparent);
+  --overlay-accent: var(--settings-accent);
+  --overlay-danger: color-mix(in srgb, #d85f6d 72%, var(--overlay-text));
+  --overlay-shadow: 0 20px 56px rgba(12, 16, 31, .18), inset 0 1px rgba(255, 255, 255, .18);
+  --overlay-popup-shadow: 0 10px 30px rgba(12, 16, 31, .16), inset 0 1px rgba(255, 255, 255, .14);
+  --overlay-radius: 22px;
+  --overlay-surface-radius: 11px;
+  --overlay-popup-radius: 14px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: var(--text);
+  background: transparent;
+}
+html body button,
+html body input,
+html body select {
+  font: inherit;
+}
+html body button {
+  cursor: pointer;
+}
+html body :is(button, a, input, select):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+html body main {
+  width: min(1600px, 100% - 48px);
+  margin: 0 auto;
+  padding: 122px 0 0;
+}
+html body .hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+html body .hero-info {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(700px, 100%);
+  margin-bottom: -30px;
+  transform: translateY(-54px);
+}
+html body .clock-weather {
+  order: 0;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 148px;
+  font-family: "Nunito", sans-serif;
+}
+html body .clock-weather-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: calc(100vw - 28px);
+}
+html body .clock-glass-line {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}
+html body .clock-glass-line::before {
+  content: "";
+  position: absolute;
+  inset: -4px -10px;
+  z-index: -1;
+  pointer-events: none;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 18, 35, 0);
+  box-shadow: none;
+  opacity: 0;
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
+  mask-image: radial-gradient(ellipse at center, #000 54%, rgba(0, 0, 0, 0.72) 73%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 54%, rgba(0, 0, 0, 0.72) 73%, transparent 100%);
+  transition: opacity 210ms ease, background-color 210ms ease, backdrop-filter 210ms ease, -webkit-backdrop-filter 210ms ease;
+}
+html body .clock-glass-line--time::before {
+  inset: -2px -9px;
+}
+html body .clock-glass-line.is-planet-behind::before {
+  background: rgba(15, 18, 35, 0.045);
+  opacity: 1;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+html body .datetime {
+  position: relative;
+  order: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  min-width: 0;
+  color: var(--text);
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  isolation: isolate;
+}
+html body .datetime time {
+  display: inline-block;
+  font-size: 64px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #f5f1fa;
+  text-shadow: none;
+}
+html body .datetime p {
+  margin: 0;
+  color: #d2cdde;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-shadow: none;
+}
+html body .search-form {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(700px, 100%);
+  min-height: 46px;
+  padding: 5px 7px 5px 17px;
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--control-radius);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+html body .search-form:hover {
+  background: var(--glass-surface-hover);
+}
+html body .search-form:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 8%, transparent), 0 4px 12px rgba(30, 25, 45, 0.05);
+}
+html body .search-form .search-icon {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
+  color: var(--label-color);
+}
+html body .search-form input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--label-color);
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+}
+html body .search-form input::placeholder {
+  color: var(--muted);
+}
+html body .search-form button {
+  min-height: 34px;
+  padding: 0 15px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text);
+  background: var(--glass-surface-hover);
+  border: 1px solid var(--glass-border);
+  border-radius: 11px;
+}
+html body .search-area {
+  width: min(700px, 100%);
+}
+html body .search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  max-height: min(390px, 55vh);
+  overflow-y: auto;
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  color: var(--text);
+  background: rgba(18, 20, 28, 0.88);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--control-radius);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+html body .search-suggestions::-webkit-scrollbar {
+  width: 9px;
+}
+html body .search-suggestions::-webkit-scrollbar-track, html body .search-suggestions::-webkit-scrollbar-corner {
+  background: transparent;
+}
+html body .search-suggestions::-webkit-scrollbar-thumb {
+  min-height: 36px;
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+html body .search-suggestions::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+  background-clip: padding-box;
+}
+html body .search-suggestions li {
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+html body .search-suggestions li:hover, html body .search-suggestions li.selected {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+html body .search-suggestions span,
+html body .search-suggestions small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html body .search-suggestions span {
+  font-size: 14px;
+}
+html body .search-suggestions small {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+html body .weather-widget {
+  order: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  max-width: min(620px, 100vw - 34px);
+  color: #eeeaf5;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  text-shadow: none;
+}
+html body .weather-widget .weather-now {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: none;
+}
+html body .weather-widget .weather-now span {
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+}
+html body .weather-widget .weather-now strong {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+html body .weather-widget .weather-city {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+html body .weather-widget .weather-city::before {
+  content: "·";
+  margin-right: 7px;
+  color: rgba(238, 242, 251, 0.42);
+}
+html body .search-form button[type=button] {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  padding: 6px;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--text);
+}
+html body .search-form button[type=button] svg {
+  width: 20px;
+  height: 20px;
+}
+html body .search-form button[type=button][aria-pressed=true] {
+  color: white;
+  background: #b83249;
+  opacity: 0.88;
+}
+html body .voice-status {
+  margin-top: 9px;
+  max-width: 650px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--scene-ink, var(--text));
+}
+
+html body .account-toolbar {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+html body .account-toolbar a {
+  color: var(--text);
+  font-size: 13px;
+  text-decoration: none;
+}
+html body .gmail-link:hover {
+  text-decoration: underline;
+}
+html body .google-account {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--account-color, #4285f4);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: var(--glass-shadow);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+html body .search-form button[data-voice-state=processing] {
+  opacity: 0.6;
+}
+
+html body .search-form button[data-voice-state=error] {
+  color: #e6a6ad;
+}
+
+.voice-permission-link {
+  display: block;
+  margin-top: 6px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--scene-ink, var(--text));
+}
+
+html body[data-bookmark-titles-visible=false] .tile .tile-title {
+  display: none;
+}
+html body .bookmarks {
+  width: min(1500px, 100%);
+  margin: 10px auto 0;
+}
+html body .bookmark-grid {
+  --orbit-tile-scale: 1;
+  --orbit-slot-gap: var(--grid-gap);
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  isolation: isolate;
+  overflow: hidden;
+  touch-action: none;
+  cursor: default;
+  overscroll-behavior: contain;
+  user-select: none;
+}
+html body .bookmark-grid.bookmark-grid--scrollable {
+  cursor: grab;
+}
+html body .bookmark-grid.bookmark-grid--panning {
+  cursor: grabbing;
+}
+html body .bookmark-arc-guide {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  box-shadow: none;
+  transform-origin: center;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.68) 34%, rgba(0, 0, 0, 0.9) 66%, #000 100%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.68) 34%, rgba(0, 0, 0, 0.9) 66%, #000 100%);
+  will-change: transform, width, height;
+}
+html body .bookmark-arc-guide--reserve {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 180ms ease, visibility 0s linear 180ms;
+}
+html body .bookmark-grid--drag-active .bookmark-arc-guide--reserve {
+  opacity: 0;
+  visibility: visible;
+  transition-delay: 0s;
+}
+html body[data-tile-size=extra-small] {
+  --tile-width: 64px;
+  --tile-height: 64px;
+  --tile-padding: 4px;
+  --icon-box-size: 34px;
+  --icon-size: 32px;
+}
+html body[data-tile-size=small] {
+  --tile-width: 72px;
+  --tile-height: 72px;
+  --tile-padding: 4px;
+  --icon-box-size: 40px;
+  --icon-size: 38px;
+}
+html body .bookmark-grid {
+  --tile-width: 76px;
+  --tile-height: 76px;
+  --tile-padding: 5px;
+  --icon-box-size: 46px;
+  --icon-size: 44px;
+}
+html body[data-tile-size=extra-small] .bookmark-grid {
+  --tile-width: 54px;
+  --tile-height: 54px;
+  --tile-padding: 3px;
+  --icon-box-size: 32px;
+  --icon-size: 30px;
+}
+html body[data-tile-size=small] .bookmark-grid {
+  --tile-width: 66px;
+  --tile-height: 66px;
+  --tile-padding: 4px;
+  --icon-box-size: 39.6px;
+  --icon-size: 37.4px;
+  --bookmark-title-max-width: 66px;
+}
+html body .grid-cell {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: calc(var(--tile-width) * var(--orbit-tile-scale));
+  height: calc(var(--tile-height) * var(--orbit-tile-scale));
+  min-width: 0;
+  min-height: 0;
+  border-radius: 50%;
+  will-change: transform, opacity;
+  transform-origin: center center;
+  transition: opacity 150ms ease;
+}
+html body .grid-cell:hover, html body .grid-cell:focus-within {
+  z-index: 3;
+}
+html body .grid-cell:empty {
+  border: 1px solid rgba(176, 199, 226, 0.025);
+  border-radius: 50%;
+}
+html body .grid-cell--empty {
+  z-index: 4 !important;
+}
+html body .grid-cell--reserve {
+  visibility: hidden;
+  pointer-events: none !important;
+}
+html body .bookmark-grid--drag-active .grid-cell--reserve {
+  visibility: visible;
+  pointer-events: auto !important;
+}
+html body .grid-cell.drag-over {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+html body .drag-preview-shift {
+  z-index: 2;
+  transition: transform 150ms cubic-bezier(0.2, 0.7, 0.2, 1) !important;
+}
+html body .drag-preview-source {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+html body .folder-grid > .drag-preview-source--folder {
+  position: absolute;
+  visibility: hidden;
+}
+html body .drag-placeholder {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent) 58%, transparent);
+  border-radius: 50%;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: left 150ms cubic-bezier(0.2, 0.7, 0.2, 1), top 150ms cubic-bezier(0.2, 0.7, 0.2, 1), width 150ms ease, height 150ms ease;
+}
+html body .folder-grid > .drag-placeholder--folder {
+  position: relative;
+  inset: auto;
+  width: var(--tile-width) !important;
+  height: var(--tile-height) !important;
+  border-radius: 50%;
+  z-index: 1;
+  flex: none;
+  transition: opacity 120ms ease !important;
+}
+html body .tile {
+  --tile-color: hsl(216 50% 55%);
+  --tile-color-light: hsl(216 46% 66%);
+  --tile-color-soft: hsl(224 42% 59%);
+  --tile-color-deep: hsl(216 52% 43%);
+  --tile-surface-opacity: 100%;
+  --tile-text: #dce3ed;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: var(--tile-padding);
+  color: var(--tile-text);
+  overflow: hidden;
+  background-color: var(--tile-color);
+  background-image: linear-gradient(148deg, var(--tile-color-light) 0%, var(--tile-color) 52%, var(--tile-color-deep) 100%);
+  border: 1px solid color-mix(in srgb, var(--tile-color-light) 13%, transparent);
+  border-radius: 51% 49% 48% 52%/49% 52% 48% 51%;
+  box-shadow: 0 4px 9px rgba(5, 8, 20, 0.16), inset 5px 5px 10px color-mix(in srgb, var(--tile-color-light) 11%, transparent), inset -8px -9px 13px color-mix(in srgb, var(--tile-color-deep) 20%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform-origin: center;
+  transition: transform 200ms ease, filter 200ms ease, box-shadow 200ms ease;
+  text-decoration: none;
+  user-select: none;
+  cursor: pointer;
+  -webkit-user-drag: element;
+}
+html body .tile > .tile-surface,
+html body .tile > .favicon-box,
+html body .tile > .tile-title {
+  pointer-events: none;
+}
+html body .tile::before {
+  content: "";
+  position: absolute;
+  left: 15%;
+  top: 13%;
+  z-index: 1;
+  width: 34%;
+  height: 14%;
+  pointer-events: none;
+  border-radius: 62% 38% 56% 44%/55% 46% 54% 45%;
+  background: color-mix(in srgb, #fff 34%, var(--tile-color-light));
+  filter: blur(0.8px);
+  opacity: 0.52;
+  transform: rotate(-22deg);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+html body .tile::after {
+  content: "";
+  position: absolute;
+  right: 2%;
+  bottom: 3%;
+  z-index: 1;
+  width: 55%;
+  height: 38%;
+  pointer-events: none;
+  border-radius: 58% 42% 51% 49%/44% 55% 45% 56%;
+  background: color-mix(in srgb, var(--tile-color-deep) 62%, transparent);
+  filter: blur(4px);
+  opacity: 0.38;
+  transform: rotate(-28deg);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+html body .tile .tile-surface {
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(142deg, var(--tile-color-light) 0%, var(--tile-color-soft) 32%, var(--tile-color) 62%, var(--tile-color-deep) 100%);
+  opacity: var(--tile-surface-opacity);
+  transition: filter 200ms ease;
+}
+html body .tile .tile-surface::before, html body .tile .tile-surface::after {
+  content: "";
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  filter: blur(0.25px);
+  transition: translate 220ms ease, opacity 220ms ease;
+}
+html body .tile .tile-surface::before {
+  left: -23%;
+  top: 32%;
+  width: 86%;
+  height: 43%;
+  border-radius: 58% 42% 55% 45%/52% 59% 41% 48%;
+  background: var(--tile-color-light);
+  opacity: 0.55;
+  transform: rotate(-17deg);
+}
+html body .tile .tile-surface::after {
+  right: -19%;
+  bottom: 5%;
+  width: 76%;
+  height: 42%;
+  border-radius: 45% 55% 43% 57%/57% 43% 55% 45%;
+  background: var(--tile-color-deep);
+  opacity: 0.47;
+  transform: rotate(-31deg);
+}
+html body .tile .tile-surface .tile-surface-detail {
+  position: absolute;
+  left: -17%;
+  top: 59%;
+  width: 111%;
+  height: 27%;
+  pointer-events: none;
+  border-radius: 55% 45% 52% 48%/66% 61% 39% 34%;
+  background: color-mix(in srgb, var(--tile-color-soft) 68%, transparent);
+  filter: blur(0.35px);
+  opacity: 0.46;
+  transform: rotate(-11deg);
+  transition: translate 220ms ease, opacity 220ms ease;
+}
+html body .tile[data-planet-pattern="2"] {
+  border-radius: 49% 51% 52% 48%/52% 48% 51% 49%;
+}
+html body .tile[data-planet-pattern="2"] .tile-surface::before {
+  left: -12%;
+  top: 8%;
+  width: 72%;
+  height: 47%;
+  border-radius: 46% 54% 58% 42%/56% 44% 57% 43%;
+  background: var(--tile-color-soft);
+  transform: rotate(21deg);
+}
+html body .tile[data-planet-pattern="2"] .tile-surface::after {
+  right: -25%;
+  bottom: 13%;
+  width: 83%;
+  height: 36%;
+  transform: rotate(14deg);
+}
+html body .tile[data-planet-pattern="2"] .tile-surface-detail {
+  left: -8%;
+  top: 61%;
+  width: 108%;
+  transform: rotate(8deg);
+}
+html body .tile[data-planet-pattern="3"] {
+  border-radius: 52% 48% 50% 50%/48% 51% 49% 52%;
+}
+html body .tile[data-planet-pattern="3"] .tile-surface::before {
+  left: -19%;
+  top: 49%;
+  width: 92%;
+  height: 36%;
+  border-radius: 59% 41% 48% 52%/46% 57% 43% 54%;
+  transform: rotate(9deg);
+}
+html body .tile[data-planet-pattern="3"] .tile-surface::after {
+  right: -8%;
+  bottom: 39%;
+  width: 58%;
+  height: 52%;
+  border-radius: 54% 46% 58% 42%/43% 56% 44% 57%;
+  background: var(--tile-color-soft);
+  opacity: 0.5;
+  transform: rotate(-18deg);
+}
+html body .tile[data-planet-pattern="3"] .tile-surface-detail {
+  left: -21%;
+  top: 21%;
+  width: 106%;
+  height: 24%;
+  transform: rotate(-24deg);
+}
+html body .tile[data-planet-pattern="4"] {
+  border-radius: 50% 50% 48% 52%/51% 49% 52% 48%;
+}
+html body .tile[data-planet-pattern="4"] .tile-surface::before {
+  left: 1%;
+  top: -13%;
+  width: 61%;
+  height: 68%;
+  border-radius: 44% 56% 55% 45%/59% 41% 56% 44%;
+  background: var(--tile-color-soft);
+  transform: rotate(-36deg);
+}
+html body .tile[data-planet-pattern="4"] .tile-surface::after {
+  right: -28%;
+  bottom: -3%;
+  width: 94%;
+  height: 43%;
+  border-radius: 57% 43% 46% 54%/51% 59% 41% 49%;
+  transform: rotate(-8deg);
+}
+html body .tile[data-planet-pattern="4"] .tile-surface-detail {
+  left: -12%;
+  top: 68%;
+  height: 22%;
+  transform: rotate(-3deg);
+}
+html body .tile:hover, html body .tile:focus-visible {
+  transform: scale(1.035);
+  background-color: var(--tile-color);
+  border-color: color-mix(in srgb, var(--tile-color-light) 18%, transparent);
+  box-shadow: 0 5px 11px rgba(5, 8, 20, 0.19), inset 5px 5px 11px color-mix(in srgb, var(--tile-color-light) 13%, transparent), inset -8px -9px 13px color-mix(in srgb, var(--tile-color-deep) 19%, transparent);
+  filter: brightness(1.025);
+}
+html body .tile:hover::before, html body .tile:focus-visible::before {
+  opacity: 0.58;
+  transform: translate(0.7px, -0.7px) rotate(-20deg);
+}
+html body .tile:hover::after, html body .tile:focus-visible::after {
+  opacity: 0.34;
+  transform: translate(0.7px, 0.7px) rotate(-26deg);
+}
+html body .tile:hover .tile-surface, html body .tile:focus-visible .tile-surface {
+  filter: saturate(1.03) brightness(1.03);
+}
+html body .tile:hover .tile-surface::before, html body .tile:focus-visible .tile-surface::before {
+  translate: 0.8px -0.6px;
+}
+html body .tile:hover .tile-surface::after, html body .tile:focus-visible .tile-surface::after {
+  translate: -0.7px 0.6px;
+}
+html body .tile:hover .tile-surface-detail, html body .tile:focus-visible .tile-surface-detail {
+  translate: 0.6px -0.5px;
+  opacity: 0.5;
+}
+html body .tile:focus-visible {
+  outline: 1px solid rgba(205, 224, 246, 0.5);
+  outline-offset: 2px;
+}
+html body .tile.dragging {
+  opacity: 0.4;
+}
+html body .tile .favicon-box {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: var(--icon-box-size);
+  height: var(--icon-box-size);
+  flex-shrink: 0;
+}
+html body .tile .favicon-box img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: calc(var(--icon-size) * var(--favicon-visual-scale, 1));
+  height: calc(var(--icon-size) * var(--favicon-visual-scale, 1));
+  padding: 0;
+  object-fit: contain;
+  opacity: 1;
+  filter: none;
+}
+.bookmark-grid .tile[data-favicon-outline=white] .favicon-box img {
+  filter: url("#favicon-white-outline");
+}
+html body .tile[data-favicon-shape=circle] .favicon-box img {
+  border-radius: 50%;
+  clip-path: circle(50%);
+}
+html body .tile .tile-title {
+  position: relative;
+  z-index: 2;
+  display: block;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.2;
+  font-family: "Nunito", sans-serif;
+  font-weight: 600;
+  text-align: center;
+  color: #eeeaf5;
+  opacity: 0.98;
+  text-shadow: 0 1px 2px rgba(0, 3, 10, 0.65);
+}
+html body .tile.tile--title-hidden {
+  gap: 0;
+}
+html body .tile.folder-tile {
+  --tile-color: #e3ad91;
+  --tile-color-light: #f0c7b1;
+  --tile-color-soft: #e9bba3;
+  --tile-color-deep: #c7896b;
+  --folder-icon-back: #e88f19;
+  --folder-icon-front: #ffc23e;
+  --tile-text: #e3e4e1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: var(--tile-padding);
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+html body .tile.folder-tile.drag-over {
+  outline: 1px solid rgba(214, 226, 240, 0.65);
+  outline-offset: -2px;
+  background-color: var(--tile-color);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tile-color-light) 48%, transparent);
+  filter: brightness(1.08);
+}
+html body .tile.folder-tile .tile-title {
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+}
+html body .tile.folder-tile .folder-mini-icon svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  display: block;
+  overflow: hidden;
+  shape-rendering: geometricPrecision;
+  filter: none;
+}
+html body .tile.folder-tile .folder-icon-back,
+html body .tile.folder-tile .folder-icon-front {
+  stroke: #fff;
+  stroke-width: 1px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+html body .tile.folder-tile .folder-icon-back {
+  fill: var(--folder-icon-back);
+}
+html body .tile.folder-tile .folder-icon-front {
+  fill: var(--folder-icon-front);
+}
+html body .tile.folder-tile[data-folder-color=mint] {
+  --tile-color: #9ebbd5;
+  --tile-color-light: #c6d9e9;
+  --tile-color-soft: #b4cde1;
+  --tile-color-deep: #769dbe;
+  --folder-icon-back: #269bd5;
+  --folder-icon-front: #62c9f5;
+}
+html body .tile.folder-tile[data-folder-color=violet] {
+  --tile-color: #b8a8d6;
+  --tile-color-light: #d2c8e5;
+  --tile-color-soft: #c6b9dd;
+  --tile-color-deep: #9481bb;
+  --folder-icon-back: #8150cc;
+  --folder-icon-front: #b77bf2;
+}
+html body .bookmark-grid .tile {
+  overflow: visible;
+  gap: 0;
+}
+html body .bookmark-grid .tile .favicon-box {
+  width: calc(var(--icon-box-size) * var(--orbit-tile-scale));
+  height: calc(var(--icon-box-size) * var(--orbit-tile-scale));
+}
+html body .bookmark-grid .tile .favicon-box img {
+  width: calc(var(--icon-size) * var(--orbit-tile-scale) * var(--favicon-visual-scale, 1));
+  height: calc(var(--icon-size) * var(--orbit-tile-scale) * var(--favicon-visual-scale, 1));
+}
+html body .bookmark-grid .tile .folder-mini-icon svg {
+  width: calc(var(--icon-size) * var(--orbit-tile-scale));
+  height: calc(var(--icon-size) * var(--orbit-tile-scale));
+}
+html body .bookmark-grid .tile .tile-title {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: calc(50% + var(--orbit-title-offset-x, 0px));
+  width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px), var(--bookmark-title-max-width, 999px));
+  max-width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px), var(--bookmark-title-max-width, 999px));
+  transform: translateX(-50%);
+  line-height: 1.15;
+  letter-spacing: 0;
+  color: #eeeaf5;
+  opacity: 1;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: subpixel-antialiased;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+  pointer-events: none;
+}
+html body .bookmark-grid .folder-tile {
+  justify-content: center;
+  padding: var(--tile-padding);
+}
+html body .bookmarks > p {
+  margin-top: 15px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+html body .settings-button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  color: #f5f1fa;
+  background: rgba(41, 33, 61, 0.88);
+  border: 1px solid rgba(102, 85, 128, 0.58);
+  border-radius: var(--control-radius);
+  box-shadow: none;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  z-index: 10;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+html body .settings-button:hover, html body .settings-button:focus-visible {
+  background: #3c3058;
+  border-color: rgba(102, 85, 128, 0.76);
+  box-shadow: none;
+}
+html body .settings-button:hover svg, html body .settings-button:focus-visible svg {
+  transform: rotate(45deg);
+}
+html body .search-form button[type=submit] {
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+html body .search-form button[type=submit]:hover, html body .search-form button[type=submit]:focus-visible {
+  background: var(--glass-surface-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow);
+}
+html body .settings-button svg {
+  width: 24px;
+  height: 24px;
+  transform-origin: center;
+  transition: transform 200ms ease;
+}
+html body .empty-tile {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--text);
+  font-size: calc(28px * var(--orbit-tile-scale));
+}
+html body .empty-tile span {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+html body .empty-tile:hover span, html body .empty-tile:focus-visible span {
+  opacity: 0.84;
+}
+html body .grid-cell:has(.empty-tile) {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  box-shadow: none;
+  opacity: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: opacity 230ms ease, background-color 230ms ease, border-color 230ms ease;
+}
+html body .grid-cell:has(.empty-tile):hover, html body .grid-cell:has(.empty-tile):focus-within {
+  opacity: 0.42;
+  background: rgba(13, 24, 40, 0.13);
+  border-color: rgba(176, 199, 226, 0.28);
+}
+html body .grid-cell:has(.empty-tile).drag-over {
+  opacity: 0.78;
+  background: color-mix(in srgb, var(--accent) 12%, rgba(13, 24, 40, 0.18));
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+html body .search-focus-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 2, 8, 0.34);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  transition: opacity 180ms ease, visibility 0s linear 180ms;
+}
+
+html body.search-focus-active .search-focus-overlay {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+html body .orbital-search-area {
+  --search-orbit-x: 50vw;
+  --search-collapsed-width: 280px;
+  --search-collapsed-cap-height: 120px;
+  --search-curve-top: calc(100vh - 120px);
+  --search-curve-width: 1380px;
+  --search-curve-height: 1270px;
+  --search-trigger-top: 65px;
+  --search-trigger-width: 176px;
+  --search-trigger-height: 44px;
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  width: auto;
+  height: auto;
+  color: #3b2908;
+  pointer-events: none;
+}
+html body .orbital-search-area .orbital-sun {
+  position: absolute;
+  left: var(--search-orbit-x);
+  top: calc(var(--search-curve-top) - 5px);
+  width: var(--search-collapsed-width);
+  height: calc(var(--search-collapsed-cap-height) + 5px);
+  z-index: 1;
+  overflow: hidden;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+html body .orbital-search-area .orbital-sun::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 0;
+  width: var(--search-curve-width);
+  height: var(--search-curve-height);
+  transform: translateX(-50%);
+  border: 0;
+  background: url("../assets/planets/sun.webp") center top/100% auto no-repeat;
+}
+html body .orbital-search-area .orbital-search-trigger {
+  position: absolute;
+  left: var(--search-orbit-x);
+  top: calc(var(--search-curve-top) + var(--search-trigger-top));
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: var(--search-trigger-width);
+  height: var(--search-trigger-height);
+  padding: 0 14px;
+  overflow: hidden;
+  box-sizing: border-box;
+  transform: translateX(-50%);
+  color: #000;
+  text-shadow: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  clip-path: ellipse(50% 100% at 50% 100%);
+  font: inherit;
+  font-family: "Nunito", sans-serif;
+  line-height: 1;
+  pointer-events: auto;
+  transition: color 160ms ease;
+}
+html body .orbital-search-area .orbital-search-trigger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 72% 125% at 50% 112%, rgba(255, 248, 216, 0.075) 0%, rgba(255, 241, 179, 0.045) 55%, rgba(105, 62, 4, 0.035) 82%, transparent 100%);
+  opacity: 0.76;
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+html body .orbital-search-area .orbital-search-trigger:hover::before {
+  opacity: 0.95;
+}
+html body .orbital-search-area .orbital-search-trigger:focus-visible {
+  outline: none;
+}
+html body .orbital-search-area .orbital-search-trigger:focus-visible::before {
+  opacity: 1;
+  filter: brightness(1.035);
+}
+html body .orbital-search-area .orbital-search-trigger:active::before {
+  opacity: 0.82;
+}
+html body .orbital-search-area .orbital-search-trigger .search-icon {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+html body .orbital-search-area .orbital-search-trigger span {
+  position: relative;
+  z-index: 1;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 22px;
+}
+html body .orbital-search-area .search-form.orbital-search-form {
+  position: absolute;
+  left: var(--search-orbit-x);
+  bottom: calc(var(--search-collapsed-cap-height) + 26px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(620px, 100vw - 32px);
+  min-height: 56px;
+  padding: 8px 9px 8px 17px;
+  overflow: visible;
+  transform: translate(-50%, 10px);
+  color: #f8f4e8;
+  background: rgba(8, 11, 18, 0.9) !important;
+  border: 1px solid rgba(235, 184, 70, 0.5);
+  border-radius: 17px;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.4), 0 0 24px rgba(225, 163, 39, 0.12), inset 0 1px rgba(255, 236, 179, 0.06) !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition: opacity 220ms ease, transform 230ms cubic-bezier(0.2, 0.75, 0.2, 1), visibility 0s linear 230ms;
+}
+html body .orbital-search-area .search-form.orbital-search-form .search-icon {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: #e8c36b;
+}
+html body .orbital-search-area .search-form.orbital-search-form input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  height: 38px;
+  padding: 0 3px;
+  color: #f8f4e8;
+  caret-color: #f2c65e;
+}
+html body .orbital-search-area .search-form.orbital-search-form input::placeholder {
+  color: rgba(238, 232, 215, 0.58);
+}
+html body .orbital-search-area .search-form.orbital-search-form button {
+  position: relative;
+  z-index: 1;
+  color: #f8f4e8;
+}
+html body .orbital-search-area .search-form.orbital-search-form button[type=button] {
+  width: 36px;
+  min-width: 36px;
+  padding: 7px;
+  color: #e8c36b;
+}
+html body .orbital-search-area .search-form.orbital-search-form button[type=submit] {
+  min-height: 36px;
+  padding: 0 16px;
+  font-size: 13px;
+  color: #f8f4e8;
+  background: rgba(225, 169, 54, 0.16);
+  border-color: rgba(239, 193, 91, 0.34);
+}
+html body .orbital-search-area.search-area--expanded .search-form.orbital-search-form {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+html body .orbital-search-area .search-suggestions {
+  top: auto;
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  transform: none;
+  border-color: rgba(235, 184, 70, 0.34);
+}
+html body .orbital-search-area .voice-status,
+html body .orbital-search-area .voice-permission-link {
+  position: absolute;
+  left: var(--search-orbit-x);
+  bottom: calc(var(--search-collapsed-cap-height) + 94px);
+  z-index: 4;
+  width: min(440px, 100vw - 32px);
+  margin: 0;
+  transform: translateX(-50%);
+  color: #f8f4e8;
+}
+html body .orbital-search-area .voice-permission-link {
+  bottom: calc(var(--search-collapsed-cap-height) + 114px);
+}
+
+@media (max-width: 600px) {
+  html body .orbital-search-area .search-form.orbital-search-form {
+    bottom: calc(var(--search-collapsed-cap-height) + 18px);
+    width: calc(100vw - 18px);
+    padding-left: 13px;
+  }
+  html body .orbital-search-area .search-form.orbital-search-form button[type=submit] {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .search-focus-overlay,
+  html body .orbital-search-area,
+  html body .orbital-search-area .orbital-sun::before,
+  html body .orbital-search-area .orbital-search-form,
+  html body .orbital-search-area .orbital-search-form input {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+html body dialog {
+  margin: auto;
+  width: min(430px, 100% - 30px);
+  max-height: calc(100dvh - 30px);
+  overflow-y: auto;
+  color: var(--text);
+  background: rgba(18, 20, 28, 0.94);
+  border: 1px solid var(--glass-border);
+  border-radius: calc(var(--control-radius) + 4px);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+html body dialog::backdrop {
+  background: rgba(8, 9, 14, 0.58);
+  backdrop-filter: blur(4px);
+}
+html body dialog form,
+html body .folder-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px;
+}
+html body dialog header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+html body dialog h2 {
+  flex: 1;
+  min-width: 0;
+  font-size: 21px;
+  overflow-wrap: anywhere;
+}
+html body .dialog-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+}
+html body .dialog-close svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+html body dialog label {
+  margin-top: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+html body dialog select,
+html body dialog input:not([type=range]):not([type=checkbox]):not([type=radio]) {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  color: var(--text);
+  background: rgba(44, 46, 56, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: 11px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+html body dialog select {
+  appearance: none;
+  padding: 9px 42px 9px 13px;
+  background-color: rgba(44, 46, 56, 0.9);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='M3 5l4 4 4-4' fill='none' stroke='%23777b86' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+html body dialog select:hover {
+  background-color: rgba(54, 56, 66, 0.96);
+  border-color: var(--glass-border-hover);
+}
+html body dialog select:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  outline: none;
+}
+html body dialog select option {
+  color: var(--select-option-text);
+  background: var(--select-option-background);
+}
+html body .custom-select {
+  position: relative;
+  width: 100%;
+}
+html body .custom-select .native-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+html body .custom-select-button {
+  position: relative;
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 42px 9px 13px;
+  color: var(--text);
+  background: rgba(44, 46, 56, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: 11px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+html body .custom-select-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: translateY(-65%) rotate(45deg);
+  transition: transform 0.18s ease;
+}
+html body .custom-select-button:hover {
+  background: rgba(54, 56, 66, 0.96);
+  border-color: var(--glass-border-hover);
+}
+html body .custom-select-button:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+html body .custom-select.is-open .custom-select-button::after {
+  transform: translateY(-30%) rotate(225deg);
+}
+html body .custom-select.is-open {
+  z-index: 2000;
+}
+html body .custom-select-list {
+  position: absolute;
+  z-index: 2001;
+  overflow-y: auto;
+  padding: 6px;
+  color: var(--text);
+  background: rgba(18, 20, 28, 0.94);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+html body .custom-select-list button {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+}
+html body .custom-select-list button:hover, html body .custom-select-list button:focus-visible {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  outline: none;
+}
+html body .custom-select-list button[aria-selected=true] {
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 650;
+}
+html body dialog input[type=range] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+html body .settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  margin-top: 7px;
+  cursor: pointer;
+}
+html body .settings-checkbox input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  padding: 0;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+html body .settings-checkbox span {
+  line-height: 1.3;
+}
+html body dialog form > section {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+html body dialog form > button,
+html body dialog form > section button,
+html body .folder-back {
+  padding: 10px 16px;
+  color: var(--text);
+  background: rgba(44, 46, 56, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: 11px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+html body .folder-dialog {
+  width: min(566px, 100% - 30px);
+  overflow: hidden;
+  background: rgba(18, 20, 28, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+html body .folder-dialog-content {
+  position: relative;
+  max-height: min(620px, 100dvh - 40px);
+  padding: 18px 20px 20px;
+  gap: 12px;
+}
+html body .folder-dialog-content header {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 30px;
+}
+html body .folder-dialog-content header h2 {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: center;
+}
+html body .folder-dialog-content header .dialog-close {
+  grid-column: 3;
+  grid-row: 1;
+}
+html body .folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, var(--tile-width));
+  grid-auto-rows: var(--tile-height);
+  justify-content: start;
+  gap: 10px;
+  max-height: min(418px, 100dvh - 150px);
+  padding: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  --icon-size: 34px;
+}
+html body .folder-grid .tile {
+  --tile-text: #dce3ed;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: var(--tile-width);
+  height: var(--tile-height);
+  padding: var(--tile-padding);
+  border-radius: 50%;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+html body .folder-grid .tile.drag-over {
+  outline-offset: -3px;
+  background-color: rgba(18, 27, 42, 0.95);
+  border-color: rgba(204, 220, 240, 0.32);
+}
+html body .folder-grid .tile .favicon-box {
+  width: 40px;
+  height: 40px;
+}
+html body .folder-grid .tile .favicon-box img {
+  width: calc(34px * var(--favicon-visual-scale, 1));
+  height: calc(34px * var(--favicon-visual-scale, 1));
+}
+html body .folder-grid .tile .folder-mini-icon svg {
+  width: 34px;
+  height: 34px;
+  fill: color-mix(in srgb, var(--tile-color-light) 68%, #d9dee7);
+}
+html body .folder-grid .tile .tile-title {
+  width: 100%;
+  max-width: 100%;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: none;
+}
+html body[data-tile-size=extra-small] .folder-grid .tile {
+  gap: 2px;
+}
+html body[data-tile-size=extra-small] .folder-grid .tile .favicon-box {
+  width: 30px;
+  height: 30px;
+}
+html body[data-tile-size=extra-small] .folder-grid .tile .favicon-box img {
+  width: calc(28px * var(--favicon-visual-scale, 1));
+  height: calc(28px * var(--favicon-visual-scale, 1));
+}
+html body[data-tile-size=extra-small] .folder-grid .tile .folder-mini-icon svg {
+  width: 28px;
+  height: 28px;
+}
+html body[data-tile-size=extra-small] .folder-grid .tile .tile-title {
+  line-height: 1.1;
+}
+html body .folder-add-tile {
+  display: grid;
+  place-items: center;
+  width: var(--tile-width);
+  height: var(--tile-height);
+  padding: 0;
+  color: rgba(220, 227, 237, 0.7);
+  background: rgba(10, 18, 31, 0.11);
+  border: 1px solid rgba(176, 199, 226, 0.08);
+  border-radius: 50%;
+  box-shadow: inset 0 1px rgba(224, 237, 252, 0.035);
+  opacity: 0.56;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: opacity 230ms ease, background-color 230ms ease, border-color 230ms ease;
+}
+html body .folder-add-tile span {
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+html body .folder-add-tile:hover, html body .folder-add-tile:focus-visible, html body .folder-add-tile.drag-over {
+  color: #dce3ed;
+  background: rgba(13, 22, 36, 0.28);
+  border-color: rgba(188, 211, 238, 0.2);
+  opacity: 1;
+}
+html body .folder-back {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+}
+html body .folder-back svg {
+  width: 24px;
+  height: 24px;
+}
+html body .folder-back:hover {
+  color: var(--text);
+  background: var(--glass-surface-hover);
+}
+html body .bookmark-menu {
+  position: fixed;
+  z-index: 100;
+  padding: 5px;
+  min-width: 190px;
+  max-width: calc(100vw - 16px);
+  color: var(--text);
+  background: rgba(18, 20, 28, 0.94);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+html body .bookmark-menu button {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  font-size: 13px;
+}
+html body .bookmark-menu button:hover {
+  background: var(--glass-surface-hover);
+}
+html body .bookmark-menu-delete {
+  color: #ffb7bd;
+}
+html body .toast {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  max-width: calc(100% - 30px);
+  padding: 12px 18px;
+  color: var(--text);
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transform: translateX(-50%);
+  z-index: 110;
+}
+
+.settings-dialog {
+  --settings-bg: #171c2b;
+  --settings-surface: #23283a;
+  --settings-surface-hover: #2d3348;
+  --settings-border: #343c51;
+  --settings-text: #f0f0f5;
+  --settings-muted: #aab1c3;
+  --settings-accent: #8175ba;
+  --settings-accent-hover: #978bcb;
+  width: min(436px, 100% - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  color: var(--settings-text);
+  font-family: "Nunito", sans-serif;
+  background: rgba(23, 28, 43, 0.96);
+  border: 1px solid rgba(52, 60, 81, 0.72);
+  border-radius: 20px;
+  box-shadow: 0 18px 44px rgba(5, 8, 18, 0.24);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(170, 177, 195, 0.28) transparent;
+}
+.settings-dialog[open] {
+  animation: settings-dialog-in 0.18s ease-out;
+}
+.settings-dialog::backdrop {
+  background: rgba(8, 10, 20, 0.38);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.settings-dialog form {
+  gap: 0;
+  padding: 20px 24px 18px;
+}
+.settings-dialog header {
+  min-height: 34px;
+  margin-bottom: 8px;
+}
+.settings-dialog header h2 {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+}
+.settings-dialog .dialog-close {
+  width: 30px;
+  height: 30px;
+  color: var(--settings-muted);
+  border-radius: 9px;
+  opacity: 0.8;
+  transition: color 0.16s ease, background-color 0.16s ease, opacity 0.16s ease;
+}
+.settings-dialog .dialog-close svg {
+  width: 22px;
+  height: 22px;
+}
+.settings-dialog .dialog-close:hover, .settings-dialog .dialog-close:focus-visible {
+  color: var(--settings-text);
+  background: rgba(240, 240, 245, 0.06);
+  opacity: 1;
+}
+.settings-dialog .settings-field {
+  min-width: 0;
+  padding: 11px 0;
+  border-top: 1px solid rgba(52, 60, 81, 0.72);
+}
+.settings-dialog fieldset.settings-field {
+  margin: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+}
+.settings-dialog .settings-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 144px;
+  align-items: center;
+  gap: 16px;
+}
+.settings-dialog label,
+.settings-dialog legend {
+  margin-top: 0;
+  color: var(--settings-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+.settings-dialog legend {
+  width: 100%;
+  margin-bottom: 6px;
+  color: var(--settings-muted);
+  font-size: 14px;
+  letter-spacing: 0.015em;
+}
+.settings-dialog select,
+.settings-dialog .custom-select-button {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 34px 7px 11px;
+  color: var(--settings-text);
+  background: var(--settings-surface);
+  border: 1px solid rgba(52, 60, 81, 0.9);
+  border-radius: 9px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 15px;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+.settings-dialog select:hover,
+.settings-dialog .custom-select-button:hover {
+  color: var(--settings-text);
+  background: var(--settings-surface-hover);
+  border-color: rgba(129, 117, 186, 0.58);
+}
+.settings-dialog select:focus, .settings-dialog select:focus-visible,
+.settings-dialog .custom-select-button:focus,
+.settings-dialog .custom-select-button:focus-visible {
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 2px rgba(129, 117, 186, 0.18);
+  outline: none;
+}
+.settings-dialog .settings-inline .custom-select {
+  width: 144px;
+  justify-self: end;
+}
+.settings-dialog .custom-select-button::after {
+  right: 12px;
+  border-color: var(--settings-muted);
+}
+.settings-dialog .custom-select-list {
+  padding: 4px;
+  color: var(--settings-text);
+  background: rgba(23, 28, 43, 0.98);
+  border-color: rgba(52, 60, 81, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(5, 8, 18, 0.28);
+}
+.settings-dialog .custom-select-list button {
+  min-height: 36px;
+  padding: 7px 10px;
+  color: var(--settings-text);
+  border-radius: 7px;
+  font-size: 15px;
+}
+.settings-dialog .custom-select-list button:hover, .settings-dialog .custom-select-list button:focus-visible {
+  background: var(--settings-surface-hover);
+}
+.settings-dialog .custom-select-list button[aria-selected=true] {
+  background: rgba(129, 117, 186, 0.22);
+  font-weight: 650;
+}
+.settings-dialog .settings-display {
+  display: grid;
+  gap: 2px;
+}
+.settings-dialog .settings-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 38px;
+  margin-top: 0;
+  color: var(--settings-text);
+  cursor: pointer;
+}
+.settings-dialog .settings-checkbox input {
+  position: relative;
+  appearance: none;
+  width: 36px;
+  height: 21px;
+  flex: 0 0 36px;
+  margin: 0;
+  background: #343747;
+  border: 1px solid rgba(170, 177, 195, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.17s ease, border-color 0.17s ease;
+}
+.settings-dialog .settings-checkbox input::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 13px;
+  height: 13px;
+  background: #f0f0f5;
+  border-radius: 50%;
+  transition: transform 0.17s ease;
+}
+.settings-dialog .settings-checkbox input:checked {
+  background: var(--settings-accent);
+  border-color: rgba(151, 139, 203, 0.72);
+}
+.settings-dialog .settings-checkbox input:checked::before {
+  transform: translateX(16px);
+}
+.settings-dialog .settings-checkbox input:focus-visible {
+  box-shadow: 0 0 0 2px rgba(129, 117, 186, 0.22);
+  outline: none;
+}
+
+.settings-dialog .settings-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  min-width: 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(52, 60, 81, 0.72);
+}
+.settings-dialog .settings-footer > button[type=submit] {
+  min-width: 90px;
+  min-height: 38px;
+  padding: 8px 16px;
+  color: var(--settings-text);
+  background: rgba(129, 117, 186, 0.34);
+  border: 0;
+  border-radius: 9px;
+  box-shadow: none;
+  font-size: 15px;
+  font-weight: 650;
+  transition: background-color 0.16s ease;
+}
+.settings-dialog .settings-footer > button[type=submit]:hover, .settings-dialog .settings-footer > button[type=submit]:focus-visible {
+  background: rgba(151, 139, 203, 0.5);
+}
+.settings-dialog .settings-sources {
+  min-width: 0;
+  margin: 0;
+  color: var(--settings-muted);
+  font-size: 13px;
+}
+.settings-dialog .settings-sources summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.16s ease;
+}
+.settings-dialog .settings-sources summary::-webkit-details-marker {
+  display: none;
+}
+.settings-dialog .settings-sources summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.16s ease;
+}
+.settings-dialog .settings-sources summary:hover, .settings-dialog .settings-sources summary:focus-visible {
+  color: var(--settings-text);
+}
+.settings-dialog .settings-sources[open] summary::after {
+  transform: translateY(2px) rotate(225deg);
+}
+.settings-dialog .settings-sources-content {
+  display: grid;
+  gap: 7px;
+  min-width: 200px;
+  padding: 8px 0 1px;
+  animation: settings-sources-in 0.16s ease-out;
+}
+.settings-dialog .settings-sources-content p {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+.settings-dialog .settings-sources-content a {
+  color: var(--settings-text);
+  text-decoration-color: rgba(240, 240, 245, 0.34);
+  text-underline-offset: 3px;
+}
+
+@keyframes settings-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes settings-sources-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-dialog {
+    width: min(436px, 100% - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .settings-dialog form {
+    padding: 18px 17px 16px;
+  }
+  .settings-dialog .settings-inline {
+    grid-template-columns: minmax(0, 1fr) 136px;
+    gap: 10px;
+  }
+  .settings-dialog .settings-inline .custom-select {
+    width: 136px;
+  }
+  .settings-dialog .settings-footer {
+    gap: 10px;
+  }
+  .settings-dialog .settings-sources-content {
+    min-width: 165px;
+  }
+  .settings-dialog .settings-sources-content p {
+    flex-direction: column;
+    gap: 1px;
+  }
+}
+html body .creation-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+html body .edit-bookmark-dialog form {
+  gap: 20px;
+}
+html body .edit-bookmark-dialog header {
+  margin-bottom: 0;
+}
+html body .edit-bookmark-dialog label {
+  margin-top: 0;
+}
+html body .edit-bookmark-dialog .creation-fields,
+html body .edit-bookmark-dialog .edit-bookmark-url-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+html body .edit-bookmark-dialog .edit-bookmark-visibility {
+  min-height: 28px;
+  margin-top: 4px;
+  gap: 10px;
+}
+html body .edit-bookmark-dialog .edit-bookmark-url-field {
+  margin-top: 8px;
+}
+html body .edit-bookmark-dialog .edit-bookmark-actions {
+  margin-top: 0;
+}
+html body .creation-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+html body .creation-details > section {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+html body .creation-details > section button {
+  padding: 10px 16px;
+  color: var(--text);
+  background: rgba(44, 46, 56, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: 11px;
+  box-shadow: var(--glass-shadow);
+}
+html body .creation-details > section button[type=submit] {
+  color: var(--text);
+  background: rgba(54, 56, 66, 0.96);
+  border-color: var(--glass-border-hover);
+}
+html body .add-dialog header {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 30px;
+}
+html body .add-dialog header h2 {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: center;
+}
+html body .add-dialog header .dialog-close {
+  grid-column: 3;
+  grid-row: 1;
+}
+html body .creation-back {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+}
+html body .creation-back svg {
+  width: 24px;
+  height: 24px;
+}
+html body .creation-back:hover {
+  color: var(--text);
+  background: var(--glass-surface-hover);
+}
+html body .item-type-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+html body .item-type-options button {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 50px;
+  padding: 9px 12px;
+  color: var(--text);
+  background: rgba(44, 46, 56, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+  font-weight: 600;
+  text-align: left;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+html body .item-type-options button svg {
+  width: 24px;
+  height: 24px;
+  color: var(--muted);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+html body .item-type-options button:hover {
+  background: rgba(54, 56, 66, 0.96);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow);
+  transform: translateY(-1px);
+}
+html body .item-type-options button:hover svg {
+  color: var(--text);
+  transform: scale(1.04);
+}
+
+@property --scene-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f5f7ff;
+}
+@property --settings-bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #111620;
+}
+@property --settings-surface {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #202738;
+}
+@property --settings-surface-hover {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2a3348;
+}
+@property --settings-border {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #5a6680;
+}
+@property --settings-text {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f5f7ff;
+}
+@property --settings-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #91a4cc;
+}
+:root {
+  --solar-orbit-rgb: 170 132 196;
+}
+
+.space-scene {
+  --orbit-x: 50vw;
+  --orbit-y: 124vh;
+  --orbit-tilt: 0deg;
+  --orbit-perspective: .92;
+  --bookmark-orbit-radius: 46vh;
+  --bookmark-orbit-step: 9vh;
+  --mercury-orbit-min-radius: 72vh;
+  --mercury-orbit-radius: var(--mercury-orbit-min-radius);
+  --planet-orbit-step: 9.5vh;
+  --venus-orbit-radius: calc(var(--mercury-orbit-radius) + var(--planet-orbit-step));
+  --earth-orbit-radius: calc(var(--venus-orbit-radius) + var(--planet-orbit-step));
+  --mars-orbit-radius: calc(var(--earth-orbit-radius) + var(--planet-orbit-step));
+  --jupiter-orbit-radius: calc(var(--mars-orbit-radius) + var(--planet-orbit-step));
+  --saturn-orbit-radius: calc(var(--jupiter-orbit-radius) + var(--planet-orbit-step));
+  --uranus-orbit-radius: calc(var(--saturn-orbit-radius) + var(--planet-orbit-step));
+  --neptune-orbit-radius: calc(var(--uranus-orbit-radius) + var(--planet-orbit-step));
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
+  contain: strict;
+  background: #01020a;
+}
+
+.space-scene__backdrop,
+.space-scene__stars,
+.space-scene__planets {
+  position: absolute;
+  inset: 0;
+}
+
+.space-scene__backdrop {
+  z-index: 0;
+  background-color: #01020a;
+  background-image: url("../assets/backgrounds/default-space-bg-dark.webp");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.space-scene__backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 43%, transparent 36%, rgba(0, 0, 0, 0.34) 100%);
+}
+
+.space-scene__stars {
+  z-index: 2;
+  overflow: hidden;
+  background: radial-gradient(circle at 9% 18%, rgba(240, 245, 255, 0.72) 0 0.7px, transparent 1.8px), radial-gradient(circle at 31% 24%, rgba(197, 217, 255, 0.55) 0 0.6px, transparent 1.6px), radial-gradient(circle at 67% 17%, rgba(255, 235, 207, 0.6) 0 0.65px, transparent 1.8px), radial-gradient(circle at 86% 37%, rgba(211, 227, 255, 0.6) 0 0.7px, transparent 1.9px), radial-gradient(circle at 18% 68%, rgba(211, 226, 255, 0.5) 0 0.55px, transparent 1.6px), radial-gradient(circle at 75% 71%, rgba(239, 225, 203, 0.48) 0 0.6px, transparent 1.7px);
+}
+
+.space-scene__static-stars {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.94;
+}
+
+.space-scene__planets {
+  --planet-orbit-shift-y: -16px;
+  z-index: 3;
+  overflow: visible;
+  transform: translate3d(0, var(--planet-orbit-shift-y), 0);
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .space-scene__planets {
+    transition: none;
+  }
+}
+
+.space-scene__orbit {
+  --orbit-line-opacity: .4;
+  --orbit-depth: 0;
+  --orbit-height: calc(var(--orbit-width) * var(--orbit-perspective));
+  position: absolute;
+  inset: 0;
+  z-index: var(--orbit-depth);
+  transform: rotate(var(--orbit-tilt));
+  transform-origin: var(--orbit-x) var(--orbit-y);
+}
+
+.space-scene__orbit::before {
+  content: "";
+  position: absolute;
+  left: var(--orbit-x);
+  top: var(--orbit-y);
+  width: var(--orbit-width);
+  height: var(--orbit-height);
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(var(--solar-orbit-rgb)/var(--orbit-line-opacity));
+  border-radius: 50%;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.46), #000 82%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.46), #000 82%);
+}
+
+.space-scene__orbit--mercury {
+  --orbit-width: calc(var(--mercury-orbit-radius) * 2);
+  --orbit-depth: 8;
+}
+
+.space-scene__orbit--venus {
+  --orbit-width: calc(var(--venus-orbit-radius) * 2);
+  --orbit-line-opacity: .42;
+  --orbit-depth: 7;
+}
+
+.space-scene__orbit--bookmarks {
+  --orbit-width: calc((var(--bookmark-orbit-radius) + var(--bookmark-orbit-step)) * 2);
+  --orbit-line-opacity: 0;
+}
+
+.space-scene__orbit--earth {
+  --orbit-width: calc(var(--earth-orbit-radius) * 2);
+  --orbit-line-opacity: .44;
+  --orbit-depth: 6;
+}
+
+.space-scene__orbit--mars {
+  --orbit-width: calc(var(--mars-orbit-radius) * 2);
+  --orbit-line-opacity: .42;
+  --orbit-depth: 5;
+}
+
+.space-scene__orbit--jupiter {
+  --orbit-width: calc(var(--jupiter-orbit-radius) * 2);
+  --orbit-line-opacity: .46;
+  --orbit-depth: 4;
+}
+
+.space-scene__orbit--saturn {
+  --orbit-width: calc(var(--saturn-orbit-radius) * 2);
+  --orbit-line-opacity: .47;
+  --orbit-depth: 3;
+}
+
+.space-scene__orbit--uranus {
+  --orbit-width: calc(var(--uranus-orbit-radius) * 2);
+  --orbit-line-opacity: .42;
+  --orbit-depth: 2;
+}
+
+.space-scene__orbit--neptune {
+  --orbit-width: calc(var(--neptune-orbit-radius) * 2);
+  --orbit-line-opacity: .4;
+  --orbit-depth: 1;
+}
+
+.space-scene__planet {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: var(--planet-size);
+  aspect-ratio: 1;
+  border: 0;
+  opacity: var(--planet-opacity, 0.96);
+  background-image: var(--planet-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  offset-path: ellipse(calc(var(--orbit-width) / 2) calc(var(--orbit-height) / 2) at var(--orbit-x) var(--orbit-y));
+  offset-distance: 0%;
+  offset-rotate: 0deg;
+  animation: space-planet-orbit var(--planet-duration) linear var(--planet-delay) infinite;
+  animation-direction: var(--planet-direction, normal);
+  will-change: offset-distance;
+}
+
+.space-scene__planet.is-screen-wrapped {
+  offset-path: none;
+  animation: none;
+  will-change: transform;
+}
+
+.space-scene__planet--mercury {
+  --planet-size: clamp(57px, 7.02vw, 82px);
+  --planet-duration: 1080s;
+  --planet-delay: -594s;
+  --planet-direction: normal;
+  --planet-phase: .55;
+  --planet-image: url('../assets/planets/mercury.webp');
+}
+
+.space-scene__planet--venus {
+  --planet-size: clamp(57px, 6.68vw, 78px);
+  --planet-duration: 1860s;
+  --planet-delay: -130s;
+  --planet-direction: reverse;
+  --planet-phase: .93;
+  --planet-image: url('../assets/planets/venus.webp');
+}
+
+.space-scene__planet--earth {
+  --planet-size: clamp(67px, 7.8vw, 91px);
+  --planet-duration: 1500s;
+  --planet-delay: -465s;
+  --planet-direction: normal;
+  --planet-phase: .31;
+  overflow: visible;
+  --planet-image: url('../assets/planets/earth.webp');
+}
+
+.space-scene__earth-moon-system {
+  --moon-orbit-radius: clamp(50px, 5.6vw, 68px);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  animation: earth-moon-orbit 92s linear -34s infinite;
+}
+
+.space-scene__earth-moon {
+  position: absolute;
+  left: var(--moon-orbit-radius);
+  top: 0;
+  width: calc(var(--planet-size) * 0.38);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: url('../assets/planets/moon.webp') center/contain no-repeat;
+}
+
+.space-scene__planet--mars {
+  --planet-size: clamp(46px, 5.55vw, 65px);
+  --planet-duration: 2220s;
+  --planet-delay: -666s;
+  --planet-direction: reverse;
+  --planet-phase: .7;
+  --planet-image: url('../assets/planets/mars.webp');
+}
+
+.space-scene__planet--jupiter {
+  --planet-size: clamp(78px, 9vw, 106px);
+  --planet-duration: 1740s;
+  --planet-delay: -139s;
+  --planet-direction: normal;
+  --planet-phase: .08;
+  --planet-image: url('../assets/planets/jupiter.webp');
+}
+
+.space-scene__planet--saturn {
+  --planet-size: clamp(113px, 12.88vw, 153px);
+  --planet-duration: 2820s;
+  --planet-delay: -1523s;
+  --planet-direction: reverse;
+  --planet-phase: .46;
+  overflow: visible;
+  --planet-image: url('../assets/planets/saturn.webp');
+}
+
+.space-scene__planet--uranus {
+  --planet-size: clamp(66px, 7.61vw, 89px);
+  --planet-duration: 2460s;
+  --planet-delay: -2066s;
+  --planet-direction: normal;
+  --planet-phase: .84;
+  --planet-image: url('../assets/planets/uranus.webp');
+}
+
+.space-scene__planet--neptune {
+  --planet-size: clamp(73px, 8.5vw, 100px);
+  --planet-duration: 3360s;
+  --planet-delay: -2621s;
+  --planet-direction: reverse;
+  --planet-phase: .22;
+  --planet-image: url('../assets/planets/neptune.webp');
+}
+
+@keyframes space-planet-orbit {
+  to {
+    offset-distance: 100%;
+  }
+}
+@keyframes earth-moon-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+html body {
+  transition: opacity 140ms ease-out, --scene-ink 1s linear, --settings-bg 1s linear, --settings-surface 1s linear, --settings-surface-hover 1s linear, --settings-border 1s linear, --settings-text 1s linear, --settings-accent 1s linear;
+}
+html body .hero-info,
+html body .account-toolbar,
+html body .empty-tile {
+  --text: var(--scene-ink);
+  --muted: var(--scene-ink);
+}
+html body .search-form {
+  background-color: rgba(28, 34, 52, 0.255);
+}
+html body .search-form:hover {
+  background-color: rgba(42, 51, 78, 0.255);
+}
+html body .bookmark-grid .tile {
+  --tile-opacity: var(--scene-tile-opacity, 16%);
+}
+html body :is(dialog, .bookmark-menu, .custom-select-list, .search-suggestions, .toast) {
+  color: var(--overlay-text);
+  background: color-mix(in srgb, var(--overlay-bg) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--overlay-border) 56%, transparent);
+  box-shadow: var(--overlay-shadow);
+  backdrop-filter: blur(20px) saturate(110%);
+  -webkit-backdrop-filter: blur(20px) saturate(110%);
+}
+html body dialog {
+  border-radius: var(--overlay-radius);
+  transition: color 0.8s linear, background-color 0.8s linear, border-color 0.8s linear;
+}
+html body dialog[open] {
+  animation: overlay-panel-in 0.18s ease-out;
+}
+html body dialog::backdrop {
+  background: rgba(10, 14, 28, 0.18);
+  backdrop-filter: blur(2px) saturate(0.92);
+  -webkit-backdrop-filter: blur(2px) saturate(0.92);
+}
+html body dialog h2 {
+  color: var(--overlay-text);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+html body dialog label {
+  color: var(--overlay-text-muted);
+  font-weight: 500;
+}
+html body dialog input:not([type=range]):not([type=checkbox]):not([type=radio]),
+html body dialog select {
+  color: var(--overlay-text);
+  background-color: color-mix(in srgb, var(--overlay-surface) 74%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+  border-radius: var(--overlay-surface-radius);
+  box-shadow: inset 0 1px color-mix(in srgb, white 18%, transparent);
+  caret-color: var(--overlay-text);
+  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+html body dialog input:not([type=range]):not([type=checkbox]):not([type=radio]):hover,
+html body dialog select:hover {
+  background-color: color-mix(in srgb, var(--overlay-surface-hover) 78%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 78%, transparent);
+}
+html body dialog input:not([type=range]):not([type=checkbox]):not([type=radio]):focus,
+html body dialog select:focus {
+  border-color: color-mix(in srgb, var(--overlay-accent) 68%, var(--overlay-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--overlay-accent) 16%, transparent), inset 0 1px color-mix(in srgb, white 18%, transparent);
+  outline: none;
+}
+html body dialog input:not([type=range]):not([type=checkbox]):not([type=radio])::placeholder,
+html body dialog select::placeholder {
+  color: color-mix(in srgb, var(--overlay-text) 44%, transparent);
+}
+html body dialog select option {
+  color: var(--overlay-text);
+  background: var(--overlay-bg);
+}
+html body dialog form > button,
+html body dialog form > section button,
+html body dialog .creation-details > section button {
+  color: var(--overlay-text);
+  background: color-mix(in srgb, var(--overlay-surface) 68%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+  border-radius: var(--overlay-surface-radius);
+  box-shadow: inset 0 1px color-mix(in srgb, white 16%, transparent);
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+html body dialog form > button:hover, html body dialog form > button:focus-visible,
+html body dialog form > section button:hover,
+html body dialog form > section button:focus-visible,
+html body dialog .creation-details > section button:hover,
+html body dialog .creation-details > section button:focus-visible {
+  background: color-mix(in srgb, var(--overlay-surface-hover) 76%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 82%, transparent);
+}
+html body dialog form > button[type=submit],
+html body dialog form > section button[type=submit],
+html body dialog .creation-details > section button[type=submit] {
+  background: color-mix(in srgb, var(--overlay-accent) 14%, var(--overlay-surface));
+  border-color: color-mix(in srgb, var(--overlay-accent) 34%, var(--overlay-border));
+}
+html body .dialog-close,
+html body .creation-back,
+html body .folder-back {
+  color: var(--overlay-text-muted);
+  background: transparent;
+  border-radius: 9px;
+  box-shadow: none;
+  opacity: 0.72;
+  transition: color 0.16s ease, opacity 0.16s ease, background-color 0.16s ease;
+}
+html body .dialog-close:hover, html body .dialog-close:focus-visible,
+html body .creation-back:hover,
+html body .creation-back:focus-visible,
+html body .folder-back:hover,
+html body .folder-back:focus-visible {
+  color: var(--overlay-text);
+  background: color-mix(in srgb, var(--overlay-text) 8%, transparent);
+  opacity: 1;
+}
+html body .custom-select-button {
+  color: var(--overlay-text);
+  background: color-mix(in srgb, var(--overlay-surface) 74%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+  border-radius: var(--overlay-surface-radius);
+  box-shadow: inset 0 1px color-mix(in srgb, white 18%, transparent);
+}
+html body .custom-select-button::after {
+  border-color: var(--overlay-text-muted);
+}
+html body .custom-select-button:hover {
+  background: color-mix(in srgb, var(--overlay-surface-hover) 78%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 78%, transparent);
+}
+html body .custom-select-button:focus-visible {
+  border-color: color-mix(in srgb, var(--overlay-accent) 68%, var(--overlay-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--overlay-accent) 16%, transparent);
+}
+html body .custom-select-list {
+  background: color-mix(in srgb, var(--overlay-bg) 96%, transparent);
+  border-radius: var(--overlay-popup-radius);
+  box-shadow: var(--overlay-popup-shadow);
+}
+html body .custom-select-list button {
+  color: var(--overlay-text);
+}
+html body .custom-select-list button:hover, html body .custom-select-list button:focus-visible {
+  background: color-mix(in srgb, var(--overlay-surface-hover) 72%, transparent);
+}
+html body .custom-select-list button[aria-selected=true] {
+  background: color-mix(in srgb, var(--overlay-accent) 18%, transparent);
+  font-weight: 600;
+}
+html body .settings-checkbox {
+  color: var(--overlay-text);
+}
+html body .settings-checkbox input {
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  min-height: 0;
+  padding: 0;
+  flex-shrink: 0;
+  background-color: color-mix(in srgb, var(--overlay-surface) 72%, transparent);
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid color-mix(in srgb, var(--overlay-border) 72%, transparent);
+  border-radius: 5px;
+}
+html body .settings-checkbox input:checked {
+  background-color: var(--overlay-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.3 6.1 4.8 8.5 9.8 3.4' fill='none' stroke='white' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  border-color: color-mix(in srgb, var(--overlay-accent) 72%, var(--overlay-border));
+}
+html body .settings-checkbox input:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--overlay-accent) 18%, transparent);
+  outline: none;
+}
+html body .folder-dialog {
+  background: color-mix(in srgb, var(--overlay-bg) 88%, transparent);
+  border-radius: var(--overlay-radius);
+}
+html body .confirm-dialog {
+  width: min(390px, 100vw - 32px);
+}
+html body .confirm-dialog form {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+html body .confirm-dialog header {
+  display: block;
+}
+html body .confirm-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+}
+html body .confirm-dialog .confirm-dialog-message {
+  margin: 0;
+  color: var(--overlay-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+html body .confirm-dialog .confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+html body .confirm-dialog .destructive-action {
+  color: var(--overlay-danger);
+  border-color: color-mix(in srgb, #d85f6d 24%, var(--overlay-border));
+}
+html body .confirm-dialog .destructive-action:hover, html body .confirm-dialog .destructive-action:focus-visible {
+  background: color-mix(in srgb, #d85f6d 10%, var(--overlay-surface));
+  border-color: color-mix(in srgb, #d85f6d 38%, var(--overlay-border));
+}
+html body .folder-grid {
+  scrollbar-color: color-mix(in srgb, var(--overlay-border) 58%, transparent) transparent;
+}
+html body .item-type-options button {
+  color: var(--overlay-text);
+  background: color-mix(in srgb, var(--overlay-surface) 70%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 56%, transparent);
+  border-radius: var(--overlay-surface-radius);
+  box-shadow: inset 0 1px color-mix(in srgb, white 16%, transparent);
+}
+html body .item-type-options button svg {
+  color: var(--overlay-text-muted);
+}
+html body .item-type-options button:hover, html body .item-type-options button:focus-visible {
+  background: color-mix(in srgb, var(--overlay-surface-hover) 76%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 80%, transparent);
+  box-shadow: inset 0 1px color-mix(in srgb, white 20%, transparent);
+  transform: none;
+}
+html body .item-type-options button:hover svg, html body .item-type-options button:focus-visible svg {
+  color: var(--overlay-text);
+  transform: none;
+}
+html body .add-dialog.add-dialog--choice {
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
+  width: min(220px, 100vw - 24px);
+  max-height: none;
+  margin: 0;
+  overflow: visible;
+  background: color-mix(in srgb, var(--overlay-bg) 94%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+  border-radius: var(--overlay-popup-radius);
+  box-shadow: var(--overlay-popup-shadow);
+}
+html body .add-dialog.add-dialog--choice::backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+html body .add-dialog.add-dialog--choice form {
+  gap: 6px;
+  padding: 9px;
+}
+html body .add-dialog.add-dialog--choice header {
+  display: flex;
+  grid-template-columns: none;
+  gap: 6px;
+  margin: 0 2px 2px 7px;
+}
+html body .add-dialog.add-dialog--choice header h2 {
+  grid-column: auto;
+  grid-row: auto;
+  font-size: 13px;
+  text-align: left;
+}
+html body .add-dialog.add-dialog--choice header .dialog-close {
+  grid-column: auto;
+  grid-row: auto;
+  width: 25px;
+  height: 25px;
+}
+html body .add-dialog.add-dialog--choice header .dialog-close svg {
+  width: 18px;
+  height: 18px;
+}
+html body .add-dialog.add-dialog--choice .item-type-options {
+  grid-template-columns: 1fr;
+  gap: 3px;
+}
+html body .add-dialog.add-dialog--choice .item-type-options button {
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 39px;
+  padding: 6px 9px;
+  background: color-mix(in srgb, var(--overlay-surface) 46%, transparent);
+  border-color: transparent;
+  border-radius: 9px;
+  font-size: 13px;
+}
+html body .add-dialog.add-dialog--choice .item-type-options button svg {
+  width: 19px;
+  height: 19px;
+}
+html body .add-dialog.add-dialog--choice .item-type-options button:hover, html body .add-dialog.add-dialog--choice .item-type-options button:focus-visible {
+  background: color-mix(in srgb, var(--overlay-surface-hover) 70%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 40%, transparent);
+}
+html body .bookmark-menu {
+  color: var(--overlay-text);
+  background: color-mix(in srgb, var(--overlay-bg) 94%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+  border-radius: var(--overlay-popup-radius);
+  box-shadow: var(--overlay-popup-shadow);
+}
+html body .bookmark-menu:not([hidden]) {
+  animation: overlay-panel-in 0.14s ease-out;
+}
+html body .bookmark-menu button {
+  color: var(--overlay-text);
+  border-radius: 9px;
+  transition: color 0.14s ease, background-color 0.14s ease;
+}
+html body .bookmark-menu button:hover, html body .bookmark-menu button:focus-visible {
+  background: color-mix(in srgb, var(--overlay-surface-hover) 70%, transparent);
+  outline: none;
+}
+html body .bookmark-menu .bookmark-menu-delete {
+  color: var(--overlay-danger);
+}
+html body .bookmark-menu .bookmark-menu-delete:hover, html body .bookmark-menu .bookmark-menu-delete:focus-visible {
+  background: color-mix(in srgb, #d85f6d 11%, var(--overlay-surface));
+}
+html body .bookmark-menu .bookmark-menu-folder-colors {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px 8px;
+  color: color-mix(in srgb, var(--overlay-text) 72%, transparent);
+  font-size: 12px;
+}
+html body .bookmark-menu .bookmark-menu-folder-colors[hidden] {
+  display: none;
+}
+html body .bookmark-menu .folder-color-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+html body .bookmark-menu button.folder-color-dot {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 50%;
+  background: var(--folder-color-dot);
+  box-shadow: inset 2px 2px 4px rgba(255, 255, 255, 0.2), inset -2px -2px 4px rgba(29, 18, 45, 0.16);
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+html body .bookmark-menu button.folder-color-dot[data-folder-color=amber] {
+  --folder-color-dot: #f6c56f;
+}
+html body .bookmark-menu button.folder-color-dot[data-folder-color=mint] {
+  --folder-color-dot: #aedcf4;
+}
+html body .bookmark-menu button.folder-color-dot[data-folder-color=violet] {
+  --folder-color-dot: #d3b9f4;
+}
+html body .bookmark-menu button.folder-color-dot:hover, html body .bookmark-menu button.folder-color-dot:focus-visible {
+  background: var(--folder-color-dot);
+  transform: scale(1.08);
+  outline: none;
+}
+html body .bookmark-menu button.folder-color-dot[aria-checked=true] {
+  box-shadow: 0 0 0 2px var(--overlay-bg), 0 0 0 3px rgba(255, 255, 255, 0.75), inset 2px 2px 4px rgba(255, 255, 255, 0.2);
+}
+html body .search-suggestions {
+  color: var(--overlay-text);
+  background: color-mix(in srgb, var(--overlay-bg) 94%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+  border-radius: var(--overlay-popup-radius);
+  box-shadow: var(--overlay-popup-shadow);
+  scrollbar-color: color-mix(in srgb, var(--overlay-border) 58%, transparent) transparent;
+}
+html body .search-suggestions:not([hidden]) {
+  animation: overlay-panel-in 0.14s ease-out;
+}
+html body .search-suggestions li:hover,
+html body .search-suggestions li.selected {
+  background: color-mix(in srgb, var(--overlay-surface-hover) 72%, transparent);
+}
+html body .search-suggestions small {
+  color: var(--overlay-text-muted);
+}
+html body .toast {
+  color: var(--overlay-text);
+  background: color-mix(in srgb, var(--overlay-bg) 94%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+  border-radius: var(--overlay-popup-radius);
+  box-shadow: var(--overlay-popup-shadow);
+}
+html body .toast:not([hidden]) {
+  animation: overlay-panel-in 0.16s ease-out;
+}
+
+@keyframes overlay-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 600px) {
+  html body .clock-weather-content {
+    gap: 5px;
+  }
+  html body .datetime {
+    min-width: 0;
+  }
+  html body .weather-widget {
+    width: auto;
+    max-width: calc(100vw - 30px);
+    gap: 5px;
+  }
+  html body .datetime time {
+    font-size: 54px;
+  }
+  html body .weather-widget .weather-now span {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  html body main {
+    width: calc(100% - 28px);
+    padding-top: 132px;
+  }
+  html body .account-toolbar {
+    top: 16px;
+    right: 16px;
+  }
+}
+
+@media (max-height: 760px) {
+  html body main {
+    padding-top: clamp(64px, 10vh, 92px);
+  }
+  html body .hero-info {
+    margin-bottom: -12px;
+    transform: translateY(-28px);
+  }
+  html body .clock-weather {
+    min-height: 126px;
+  }
+  html body .datetime time {
+    font-size: min(64px, 9vh);
+  }
+}
+@media (max-height: 620px) {
+  html body main {
+    padding-top: 48px;
+  }
+  html body .hero-info {
+    margin-bottom: -4px;
+    transform: translateY(-14px);
+  }
+  html body .clock-weather {
+    min-height: 112px;
+  }
+  html body .datetime time {
+    font-size: min(54px, 9vh);
+  }
+}
+html body .bookmark-tooltip {
+  position: fixed;
+  z-index: 10020;
+  max-width: min(320px, 100vw - 16px);
+  padding: 6px 10px;
+  overflow-wrap: anywhere;
+  color: #f5f1fa;
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  background: rgba(36, 32, 51, 0.94);
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(4, 3, 12, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+html body .bookmark-tooltip[data-placement=bottom] {
+  transform: translateY(-4px);
+}
+
+html body .bookmark-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: none) {
+  html body .empty-tile span {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 600px) {
+  .space-scene__orbit::before {
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.48) 32%, rgba(0, 0, 0, 0.78) 65%, #000 100%);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.48) 32%, rgba(0, 0, 0, 0.78) 65%, #000 100%);
+  }
+  .space-scene__planet--mercury {
+    --planet-size: clamp(43px, 11.93vw, 53px);
+  }
+  .space-scene__planet--venus {
+    --planet-size: clamp(42px, 11.75vw, 52px);
+  }
+  .space-scene__planet--earth {
+    --planet-size: clamp(49px, 13.8vw, 60px);
+  }
+  .space-scene__planet--mars {
+    --planet-size: clamp(34px, 9.74vw, 43px);
+  }
+  .space-scene__planet--jupiter {
+    --planet-size: clamp(58px, 16.18vw, 71px);
+  }
+  .space-scene__planet--saturn {
+    --planet-size: clamp(85px, 23.75vw, 105px);
+  }
+  .space-scene__planet--uranus {
+    --planet-size: clamp(49px, 13.54vw, 58px);
+  }
+  .space-scene__planet--neptune {
+    --planet-size: clamp(55px, 15.37vw, 66px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clock-glass-line::before {
+    transition: none !important;
+  }
+  .space-scene__planet,
+  .space-scene__earth-moon-system {
+    animation-play-state: paused !important;
+  }
+  .drag-preview-shift,
+  .drag-placeholder {
+    transition: none !important;
+  }
+  .bookmark-tooltip {
+    transition: none !important;
+  }
+  .settings-button,
+  .settings-button svg {
+    transition: none !important;
+  }
+  :is(dialog, .bookmark-menu, .custom-select-list, .search-suggestions, .toast),
+  :is(dialog, .bookmark-menu, .custom-select-list, .search-suggestions, .toast) * {
+    animation: none !important;
+    transition: none !important;
+  }
+  html body {
+    transition: none;
+  }
+  .settings-dialog,
+  .settings-dialog * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

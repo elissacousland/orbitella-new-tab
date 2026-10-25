@@ -1,0 +1,26 @@
+{
+    "manifest_version": 3,
+    "name": "Orbitella",
+    "version": "1.0.0",
+    "description": "A customizable cosmic new tab for Chrome with animated planets, bookmarks, search, weather, and a charming cartoon design.",
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+    },
+    "chrome_url_overrides": {
+        "newtab": "index.html"
+    },
+    "permissions": [
+        "bookmarks",
+        "storage",
+        "search",
+        "favicon",
+        "geolocation",
+        "identity",
+        "identity.email",
+        "history"
+    ],
+    "host_permissions": [
+        "https://*/*",
+        "http://*/*"
+    ]
+}

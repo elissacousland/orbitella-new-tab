@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru" class="dashboard-loading">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbitella</title>
+    <!-- стили и скрипты -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 5v14M5 12h14' fill='none' stroke='%235F6368' stroke-width='2'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles/style.css">
+    <script src="js/settings.js" defer></script>
+    <script src="js/translations.js" defer></script>
+    <script src="js/interface.js" defer></script>
+    <script src="js/background.js" defer></script>
+    <script src="js/planet-clock-glass.js" defer></script>
+    <script src="js/clock.js" defer></script>
+    <script src="js/favicon.js" defer></script>
+    <script src="js/bookmark-store.js" defer></script>
+    <script src="js/tile-colors.js" defer></script>
+    <script src="js/bookmarks-ui.js" defer></script>
+    <script src="js/search.js" defer></script>
+    <script src="js/suggestions.js" defer></script>
+    <script src="js/weather.js" defer></script>
+    <script src="js/account.js" defer></script>
+    <script src="js/voice-search.js" defer></script>
+    <script src="js/main.js" defer></script>
+</head>
+
+<body data-tile-size="small" data-bookmark-titles-visible="true">
+
+    <!-- фильтр фавиконов -->
+    <svg width="0" height="0" aria-hidden="true" focusable="false"
+        style="position: absolute; overflow: hidden">
+        <defs>
+            <filter id="favicon-white-outline" x="-8%" y="-8%" width="116%" height="116%"
+                color-interpolation-filters="sRGB">
+                <feMorphology in="SourceAlpha" operator="dilate" radius="1" result="expanded" />
+                <feComposite in="expanded" in2="SourceAlpha" operator="out" result="outline-shape" />
+                <feFlood flood-color="#fff" result="outline-color" />
+                <feComposite in="outline-color" in2="outline-shape" operator="in" result="outline" />
+                <feMerge>
+                    <feMergeNode in="outline" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+    </svg>
+
+    <!-- космический фон -->
+    <div class="space-scene" aria-hidden="true">
+        <div class="space-scene__backdrop"></div>
+        <div class="space-scene__stars"></div>
+        <div class="space-scene__planets">
+            <div class="space-scene__orbit space-scene__orbit--mercury">
+                <i class="space-scene__planet space-scene__planet--mercury"></i>
+            </div>
+            <div class="space-scene__orbit space-scene__orbit--venus">
+                <i class="space-scene__planet space-scene__planet--venus"></i>
+            </div>
+            <div class="space-scene__orbit space-scene__orbit--bookmarks"></div>
+            <div class="space-scene__orbit space-scene__orbit--earth">
+                <i class="space-scene__planet space-scene__planet--earth">
+                    <span class="space-scene__earth-moon-system">
+                        <span class="space-scene__earth-moon"></span>
+                    </span>
+                </i>
+            </div>
+            <div class="space-scene__orbit space-scene__orbit--mars">
+                <i class="space-scene__planet space-scene__planet--mars"></i>
+            </div>
+            <div class="space-scene__orbit space-scene__orbit--jupiter">
+                <i class="space-scene__planet space-scene__planet--jupiter"></i>
+            </div>
+            <div class="space-scene__orbit space-scene__orbit--saturn">
+                <i class="space-scene__planet space-scene__planet--saturn"></i>
+            </div>
+            <div class="space-scene__orbit space-scene__orbit--uranus">
+                <i class="space-scene__planet space-scene__planet--uranus"></i>
+            </div>
+            <div class="space-scene__orbit space-scene__orbit--neptune">
+                <i class="space-scene__planet space-scene__planet--neptune"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- аккаунт -->
+    <nav class="account-toolbar" aria-label="Google">
+        <a class="gmail-link" href="https://mail.google.com/">Gmail</a>
+        <a class="google-account" href="https://myaccount.google.com/" aria-label="Google аккаунт"
+            title="Google аккаунт">
+            <span hidden></span>
+        </a>
+    </nav>
+    <!-- часы закладки и поиск -->
+    <main>
+
+        <section class="hero">
+            <header class="hero-info">
+                <div class="clock-weather">
+                    <div class="clock-weather-content">
+                        <a class="datetime" href="https://calendar.google.com/"
+                            aria-label="Открыть Google Календарь"
+                            data-i18n-aria-label="openCalendar">
+                            <time class="clock-glass-line clock-glass-line--time">--:--</time>
+                            <p class="clock-glass-line clock-glass-line--date"></p>
+                        </a>
+                        <a class="weather-widget clock-glass-line clock-glass-line--weather"
+                            href="https://www.gismeteo.ru/"
+                            title="Открыть прогноз погоды">
+                            <div class="weather-now" aria-live="polite">
+                                <span aria-hidden="true">◌</span>
+                                <strong>—</strong>
+                            </div>
+                            <p class="weather-city">Погода рядом с вами</p>
+                        </a>
+                    </div>
+                </div>
+            </header>
+
+        </section>
+
+        <section class="bookmarks" id="bookmarks-panel">
+            <div class="bookmark-grid"></div>
+            <p data-i18n="empty" hidden> Закладок пока нет. </p>
+        </section>
+        <div class="search-focus-overlay" aria-hidden="true"></div>
+        <div class="search-area orbital-search-area">
+            <div class="orbital-sun" aria-hidden="true"></div>
+            <button class="orbital-search-trigger" type="button" aria-expanded="false"
+                aria-controls="orbital-search-form" aria-label="Открыть поиск"
+                data-i18n-aria-label="openSearch">
+                <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M16 16L21 21" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" />
+                </svg>
+                <span data-i18n="find">Найти</span>
+            </button>
+            <form class="search-form orbital-search-form" id="orbital-search-form"
+                aria-label="Поиск" data-i18n-aria-label="find">
+                <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M16 16L21 21" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" />
+                </svg>
+                <input type="search" autocomplete="off" spellcheck="false"
+                    role="combobox" aria-autocomplete="list" aria-expanded="false"
+                    aria-controls="search-suggestions" aria-label="Поиск" data-i18n-aria-label="find"
+                    placeholder="Поиск в интернете..." data-i18n-placeholder="searchPlaceholder">
+                <button class="voice-search-button" type="button" aria-label="Голосовой поиск"
+                    aria-pressed="false" title="Голосовой поиск">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor" />
+                        <path d="M5 10v2a7 7 0 0014 0v-2M12 19v3M8 22h8" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                </button>
+                <button type="submit" data-i18n="find">Найти</button>
+                <ul class="search-suggestions" id="search-suggestions" role="listbox"
+                    aria-label="Подсказки поиска" hidden></ul>
+            </form>
+            <p class="voice-status" role="status" aria-live="polite" hidden></p>
+        </div>
+    </main>
+    <!-- настройки -->
+    <button type="button" class="floating-button settings-button" aria-label="Настройки"
+        data-i18n-aria-label="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9.6 3.7L10.2 2H13.8L14.4 3.7
+           C15 3.9 15.6 4.1 16.1 4.5
+           L17.8 3.8L20.2 6.2L19.5 7.9
+           C19.9 8.4 20.1 9 20.3 9.6
+           L22 10.2V13.8L20.3 14.4
+           C20.1 15 19.9 15.6 19.5 16.1
+           L20.2 17.8L17.8 20.2L16.1 19.5
+           C15.6 19.9 15 20.1 14.4 20.3
+           L13.8 22H10.2L9.6 20.3
+           C9 20.1 8.4 19.9 7.9 19.5
+           L6.2 20.2L3.8 17.8L4.5 16.1
+           C4.1 15.6 3.9 15 3.7 14.4
+           L2 13.8V10.2L3.7 9.6
+           C3.9 9 4.1 8.4 4.5 7.9
+           L3.8 6.2L6.2 3.8L7.9 4.5
+           C8.4 4.1 9 3.9 9.6 3.7Z" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8" />
+        </svg>
+    </button>
+
+    <dialog class="settings-dialog" aria-labelledby="settings-dialog-title">
+        <form>
+            <header>
+                <h2 id="settings-dialog-title" data-i18n="settings"> Настройки </h2>
+                <button type="button" class="dialog-close" data-close aria-label="Закрыть"
+                    data-i18n-aria-label="close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+            </header>
+            <div class="settings-field settings-inline">
+                <label for="language-select" data-i18n="language"> Язык интерфейса </label>
+                <select id="language-select">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <fieldset class="settings-field settings-display">
+                <legend data-i18n="display">Отображение</legend>
+                <label class="settings-checkbox">
+                    <span data-i18n="showSearch">Показывать поиск</span>
+                    <input id="show-search" type="checkbox" checked>
+                </label>
+                <label class="settings-checkbox">
+                    <span data-i18n="showBookmarks">Показывать закладки</span>
+                    <input id="show-bookmarks" type="checkbox" aria-controls="bookmarks-panel" checked>
+                </label>
+                <label class="settings-checkbox">
+                    <span data-i18n="showBookmarkTitles">Показывать названия закладок</span>
+                    <input id="show-bookmark-titles" type="checkbox" aria-controls="bookmarks-panel" checked>
+                </label>
+            </fieldset>
+            <div class="settings-field settings-inline">
+                <label for="tile-size-select" data-i18n="tileSize"> Размер плиток </label>
+                <select id="tile-size-select">
+                    <option value="extra-small" data-i18n="small"> Маленький </option>
+                    <option value="small" data-i18n="medium"> Средний </option>
+                </select>
+            </div>
+            <footer class="settings-footer">
+                <details class="settings-sources">
+                    <summary data-i18n="dataSources">Источники данных</summary>
+                    <div class="settings-sources-content">
+                        <p>
+                            <span data-i18n="weatherSource">Погода</span>
+                            <a href="https://open-meteo.com/" rel="noopener noreferrer">Open-Meteo <span aria-hidden="true">↗</span></a>
+                        </p>
+                        <p>
+                            <span data-i18n="geolocationSource">Геолокация</span>
+                            <a href="https://www.bigdatacloud.com/" rel="noopener noreferrer">BigDataCloud <span aria-hidden="true">↗</span></a>
+                        </p>
+                    </div>
+                </details>
+                <button type="submit" data-i18n="done"> Готово </button>
+            </footer>
+        </form>
+    </dialog>
+
+    <!-- редактирование закладки -->
+    <dialog class="edit-bookmark-dialog" aria-labelledby="edit-bookmark-dialog-title">
+        <form>
+            <header>
+                <h2 id="edit-bookmark-dialog-title" data-i18n="editBookmarkHeading"> Изменить закладку </h2>
+                <button type="button" class="dialog-close" data-close aria-label="Закрыть"
+                    data-i18n-aria-label="close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+            </header>
+            <div class="creation-fields">
+                <label for="edit-bookmark-title" data-i18n="bookmarkTitle"> Название </label>
+                <input id="edit-bookmark-title" type="text" maxlength="120">
+                <label class="settings-checkbox edit-bookmark-visibility">
+                    <input id="edit-bookmark-show-title" type="checkbox" checked>
+                    <span data-i18n="showBookmarkTitle">Показывать название на плитке</span>
+                </label>
+                <div class="edit-bookmark-url-field">
+                    <label for="edit-bookmark-url" data-i18n="bookmarkUrl"> Адрес сайта </label>
+                    <input id="edit-bookmark-url" type="text" required>
+                </div>
+            </div>
+            <section class="edit-bookmark-actions">
+                <button type="button" data-close data-i18n="cancel"> Отмена </button>
+                <button type="submit" data-i18n="save"> Сохранить </button>
+            </section>
+        </form>
+    </dialog>
+
+    <!-- новая закладка или папка -->
+    <dialog class="add-dialog" aria-labelledby="add-dialog-title">
+        <form>
+            <header>
+                <button type="button" class="creation-back" aria-label="Назад" data-i18n-aria-label="back" hidden>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14 6L8 12L14 18M8 12H21" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <h2 id="add-dialog-title" data-i18n="chooseWhat"> Что добавить? </h2>
+                <button type="button" class="dialog-close" data-close aria-label="Закрыть"
+                    data-i18n-aria-label="close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+            </header>
+            <div class="item-type-options">
+                <button type="button" data-kind="bookmark">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 4.5C7 3.7 7.7 3 8.5 3H15.5C16.3 3 17 3.7 17 4.5V21L12 17.8L7 21V4.5Z"
+                            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                    </svg>
+                    <span data-i18n="bookmarkType">Закладка</span>
+                </button>
+                <button type="button" data-kind="folder">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3.5 7.5V18C3.5 19.1 4.4 20 5.5 20H18.5C19.6 20 20.5 19.1 20.5 18V8.5C20.5 7.4 19.6 6.5 18.5 6.5H12L10.2 4.5H5.5C4.4 4.5 3.5 5.4 3.5 6.5V7.5Z"
+                            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                    </svg>
+                    <span data-i18n="folderType">Папка</span>
+                </button>
+            </div>
+            <input type="hidden" name="add-kind" value="">
+            <div class="creation-details" hidden>
+                <div class="creation-fields">
+                    <label for="add-parent" data-i18n="parentFolder">Папка в Chrome</label>
+                    <select id="add-parent" required></select>
+                    <label for="add-title" data-i18n="bookmarkTitle"> Название </label>
+                    <input id="add-title" type="text" maxlength="120" placeholder="YouTube">
+                    <label for="add-url" data-i18n="bookmarkUrl"> Адрес сайта </label>
+                    <input id="add-url" type="text" placeholder="youtube.com" required>
+                </div>
+                <section>
+                    <button type="button" data-close data-i18n="cancel"> Отмена </button>
+                    <button type="submit" data-i18n="create"> Создать </button>
+                </section>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- папки -->
+    <dialog class="confirm-dialog" aria-labelledby="confirm-dialog-title">
+        <form method="dialog">
+            <header>
+                <h2 id="confirm-dialog-title" data-i18n="deleteFolder">Удалить папку</h2>
+            </header>
+            <p class="confirm-dialog-message"></p>
+            <section class="confirm-dialog-actions">
+                <button type="submit" value="cancel" data-i18n="cancel">Отмена</button>
+                <button type="submit" value="confirm" class="destructive-action" data-i18n="deleteAction">Удалить</button>
+            </section>
+        </form>
+    </dialog>
+
+    <dialog class="folder-dialog" aria-labelledby="folder-title">
+        <section class="folder-dialog-content">
+            <header>
+                <button class="folder-back" type="button" aria-label="Назад" data-i18n-aria-label="back" hidden>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14 6L8 12L14 18M8 12H21" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <h2 id="folder-title"> Папка </h2>
+                <button type="button" class="dialog-close" data-close aria-label="Закрыть"
+                    data-i18n-aria-label="close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+            </header>
+            <div class="folder-grid"></div>
+        </section>
+    </dialog>
+
+    <!-- меню закладки -->
+    <div class="bookmark-menu" role="menu" hidden>
+        <button type="button" class="bookmark-menu-edit" role="menuitem" data-i18n="editBookmark">Изменить
+        </button>
+        <div class="bookmark-menu-folder-colors" role="group" aria-label="Цвет папки"
+            data-i18n-aria-label="folderColor" hidden>
+            <span data-i18n="folderColor">Цвет папки</span>
+            <div class="folder-color-options">
+                <button type="button" class="folder-color-dot" data-folder-color="amber" role="menuitemradio"
+                    aria-checked="false" aria-label="Абрикосовый" data-i18n-aria-label="folderColorAmber"></button>
+                <button type="button" class="folder-color-dot" data-folder-color="mint" role="menuitemradio"
+                    aria-checked="false" aria-label="Голубой" data-i18n-aria-label="folderColorMint"></button>
+                <button type="button" class="folder-color-dot" data-folder-color="violet" role="menuitemradio"
+                    aria-checked="false" aria-label="Лавандовый" data-i18n-aria-label="folderColorViolet"></button>
+            </div>
+        </div>
+        <button type="button" class="bookmark-menu-delete" role="menuitem" data-i18n="deleteBookmark">Удалить закладку
+        </button>
+    </div>
+
+    <!-- уведомления -->
+    <div class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+</body>
+
+</html>

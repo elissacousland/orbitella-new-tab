@@ -1,0 +1,179 @@
+
+
+html {
+    body {
+
+        @media (max-width: 600px) {
+
+            .clock-weather-content {
+                gap: 5px;
+            }
+
+            .datetime {
+                min-width: 0;
+            }
+
+            .weather-widget {
+                width: auto;
+                max-width: calc(100vw - 30px);
+                gap: 5px;
+            }
+
+            .datetime time {
+                font-size: 54px;
+            }
+
+            .weather-widget .weather-now span {
+                font-size: 22px;
+            }
+
+        }
+
+    }
+}
+
+html body {
+    @media (max-width: 600px) {
+        main {
+            width: calc(100% - 28px);
+            padding-top: 132px;
+        }
+
+        .account-toolbar {
+            top: 16px;
+            right: 16px;
+        }
+    }
+
+}
+
+@media (max-height: 760px) {
+    html body {
+        main {
+            padding-top: clamp(64px, 10vh, 92px);
+        }
+
+        .hero-info {
+            margin-bottom: -12px;
+            transform: translateY(-28px);
+        }
+
+        .clock-weather {
+            min-height: 126px;
+        }
+
+        .datetime time {
+            font-size: min(64px, 9vh);
+        }
+    }
+}
+
+@media (max-height: 620px) {
+    html body {
+        main {
+            padding-top: 48px;
+        }
+
+        .hero-info {
+            margin-bottom: -4px;
+            transform: translateY(-14px);
+        }
+
+        .clock-weather {
+            min-height: 112px;
+        }
+
+        .datetime time {
+            font-size: min(54px, 9vh);
+        }
+    }
+}
+
+html body {
+
+        @media (hover: none) {
+            .empty-tile span {
+                opacity: .5;
+            }
+        }
+
+}
+
+.space-scene {
+    @media (max-width: 600px) {
+        &__orbit::before {
+            -webkit-mask-image: linear-gradient(180deg,
+                rgba(0, 0, 0, .32) 0%, rgba(0, 0, 0, .48) 32%, rgba(0, 0, 0, .78) 65%, #000 100%);
+            mask-image: linear-gradient(180deg,
+                rgba(0, 0, 0, .32) 0%, rgba(0, 0, 0, .48) 32%, rgba(0, 0, 0, .78) 65%, #000 100%);
+        }
+
+        &__planet--mercury {
+            --planet-size: clamp(43px, 11.93vw, 53px);
+        }
+        &__planet--venus {
+            --planet-size: clamp(42px, 11.75vw, 52px);
+        }
+        &__planet--earth {
+            --planet-size: clamp(49px, 13.8vw, 60px);
+        }
+        &__planet--mars {
+            --planet-size: clamp(34px, 9.74vw, 43px);
+        }
+        &__planet--jupiter {
+            --planet-size: clamp(58px, 16.18vw, 71px);
+        }
+        &__planet--saturn {
+            --planet-size: clamp(85px, 23.75vw, 105px);
+        }
+        &__planet--uranus {
+            --planet-size: clamp(49px, 13.54vw, 58px);
+        }
+        &__planet--neptune {
+            --planet-size: clamp(55px, 15.37vw, 66px);
+        }
+
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .clock-glass-line::before {
+        transition: none !important;
+    }
+
+    .space-scene__planet,
+    .space-scene__earth-moon-system {
+        animation-play-state: paused !important;
+    }
+
+    .drag-preview-shift,
+    .drag-placeholder {
+        transition: none !important;
+    }
+
+    .bookmark-tooltip {
+        transition: none !important;
+    }
+
+    .settings-button,
+    .settings-button svg {
+        transition: none !important;
+    }
+
+    :is(dialog, .bookmark-menu, .custom-select-list, .search-suggestions, .toast),
+    :is(dialog, .bookmark-menu, .custom-select-list, .search-suggestions, .toast) * {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    html body {
+        transition: none;
+    }
+
+    .settings-dialog,
+    .settings-dialog * {
+        animation: none !important;
+        transition: none !important;
+    }
+
+}

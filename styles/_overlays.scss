@@ -1,0 +1,417 @@
+
+
+html body {
+    :is(dialog, .bookmark-menu, .custom-select-list, .search-suggestions, .toast) {
+        color: var(--overlay-text);
+        background: color-mix(in srgb, var(--overlay-bg) 90%, transparent);
+        border: 1px solid color-mix(in srgb, var(--overlay-border) 56%, transparent);
+        box-shadow: var(--overlay-shadow);
+        backdrop-filter: blur(20px) saturate(110%);
+        -webkit-backdrop-filter: blur(20px) saturate(110%);
+    }
+
+    dialog {
+        border-radius: var(--overlay-radius);
+        transition: color .8s linear, background-color .8s linear, border-color .8s linear;
+
+        &[open] { animation: overlay-panel-in .18s ease-out; }
+
+        &::backdrop {
+            background: rgba(10, 14, 28, .18);
+            backdrop-filter: blur(2px) saturate(.92);
+            -webkit-backdrop-filter: blur(2px) saturate(.92);
+        }
+
+        h2 {
+            color: var(--overlay-text);
+            font-weight: 600;
+            letter-spacing: -.015em;
+        }
+
+        label {
+            color: var(--overlay-text-muted);
+            font-weight: 500;
+        }
+
+        input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+        select {
+            color: var(--overlay-text);
+            background-color: color-mix(in srgb, var(--overlay-surface) 74%, transparent);
+            border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+            border-radius: var(--overlay-surface-radius);
+            box-shadow: inset 0 1px color-mix(in srgb, white 18%, transparent);
+            caret-color: var(--overlay-text);
+            transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
+
+            &:hover {
+                background-color: color-mix(in srgb, var(--overlay-surface-hover) 78%, transparent);
+                border-color: color-mix(in srgb, var(--overlay-border) 78%, transparent);
+            }
+
+            &:focus {
+                border-color: color-mix(in srgb, var(--overlay-accent) 68%, var(--overlay-border));
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--overlay-accent) 16%, transparent),
+                    inset 0 1px color-mix(in srgb, white 18%, transparent);
+                outline: none;
+            }
+
+            &::placeholder { color: color-mix(in srgb, var(--overlay-text) 44%, transparent); }
+        }
+
+        select option {
+            color: var(--overlay-text);
+            background: var(--overlay-bg);
+        }
+
+        form > button,
+        form > section button,
+        .creation-details > section button {
+            color: var(--overlay-text);
+            background: color-mix(in srgb, var(--overlay-surface) 68%, transparent);
+            border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+            border-radius: var(--overlay-surface-radius);
+            box-shadow: inset 0 1px color-mix(in srgb, white 16%, transparent);
+            transition: background-color .16s ease, border-color .16s ease;
+
+            &:hover,
+            &:focus-visible {
+                background: color-mix(in srgb, var(--overlay-surface-hover) 76%, transparent);
+                border-color: color-mix(in srgb, var(--overlay-border) 82%, transparent);
+            }
+
+            &[type="submit"] {
+                background: color-mix(in srgb, var(--overlay-accent) 14%, var(--overlay-surface));
+                border-color: color-mix(in srgb, var(--overlay-accent) 34%, var(--overlay-border));
+            }
+        }
+    }
+
+    .dialog-close,
+    .creation-back,
+    .folder-back {
+        color: var(--overlay-text-muted);
+        background: transparent;
+        border-radius: 9px;
+        box-shadow: none;
+        opacity: .72;
+        transition: color .16s ease, opacity .16s ease, background-color .16s ease;
+
+        &:hover,
+        &:focus-visible {
+            color: var(--overlay-text);
+            background: color-mix(in srgb, var(--overlay-text) 8%, transparent);
+            opacity: 1;
+        }
+    }
+
+    .custom-select-button {
+        color: var(--overlay-text);
+        background: color-mix(in srgb, var(--overlay-surface) 74%, transparent);
+        border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+        border-radius: var(--overlay-surface-radius);
+        box-shadow: inset 0 1px color-mix(in srgb, white 18%, transparent);
+
+        &::after { border-color: var(--overlay-text-muted); }
+
+        &:hover {
+            background: color-mix(in srgb, var(--overlay-surface-hover) 78%, transparent);
+            border-color: color-mix(in srgb, var(--overlay-border) 78%, transparent);
+        }
+
+        &:focus-visible {
+            border-color: color-mix(in srgb, var(--overlay-accent) 68%, var(--overlay-border));
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--overlay-accent) 16%, transparent);
+        }
+    }
+
+    .custom-select-list {
+        background: color-mix(in srgb, var(--overlay-bg) 96%, transparent);
+        border-radius: var(--overlay-popup-radius);
+        box-shadow: var(--overlay-popup-shadow);
+
+        button {
+            color: var(--overlay-text);
+
+            &:hover,
+            &:focus-visible { background: color-mix(in srgb, var(--overlay-surface-hover) 72%, transparent); }
+
+            &[aria-selected="true"] {
+                background: color-mix(in srgb, var(--overlay-accent) 18%, transparent);
+                font-weight: 600;
+            }
+        }
+    }
+
+    .settings-checkbox {
+        color: var(--overlay-text);
+
+        input {
+            appearance: none;
+            width: 17px;
+            height: 17px;
+            min-height: 0;
+            padding: 0;
+            flex-shrink: 0;
+            background-color: color-mix(in srgb, var(--overlay-surface) 72%, transparent);
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 1px solid color-mix(in srgb, var(--overlay-border) 72%, transparent);
+            border-radius: 5px;
+
+            &:checked {
+                background-color: var(--overlay-accent);
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.3 6.1 4.8 8.5 9.8 3.4' fill='none' stroke='white' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+                border-color: color-mix(in srgb, var(--overlay-accent) 72%, var(--overlay-border));
+            }
+
+            &:focus-visible {
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--overlay-accent) 18%, transparent);
+                outline: none;
+            }
+        }
+    }
+
+    .folder-dialog {
+        background: color-mix(in srgb, var(--overlay-bg) 88%, transparent);
+        border-radius: var(--overlay-radius);
+    }
+
+    .confirm-dialog {
+        width: min(390px, calc(100vw - 32px));
+
+        form {
+            display: grid;
+            gap: 16px;
+            padding: 24px;
+        }
+
+        header { display: block; }
+
+        h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .confirm-dialog-message {
+            margin: 0;
+            color: var(--overlay-text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .confirm-dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .destructive-action {
+            color: var(--overlay-danger);
+            border-color: color-mix(in srgb, #d85f6d 24%, var(--overlay-border));
+
+            &:hover,
+            &:focus-visible {
+                background: color-mix(in srgb, #d85f6d 10%, var(--overlay-surface));
+                border-color: color-mix(in srgb, #d85f6d 38%, var(--overlay-border));
+            }
+        }
+    }
+
+    .folder-grid { scrollbar-color: color-mix(in srgb, var(--overlay-border) 58%, transparent) transparent; }
+
+    .item-type-options button {
+        color: var(--overlay-text);
+        background: color-mix(in srgb, var(--overlay-surface) 70%, transparent);
+        border-color: color-mix(in srgb, var(--overlay-border) 56%, transparent);
+        border-radius: var(--overlay-surface-radius);
+        box-shadow: inset 0 1px color-mix(in srgb, white 16%, transparent);
+
+        svg { color: var(--overlay-text-muted); }
+
+        &:hover,
+        &:focus-visible {
+            background: color-mix(in srgb, var(--overlay-surface-hover) 76%, transparent);
+            border-color: color-mix(in srgb, var(--overlay-border) 80%, transparent);
+            box-shadow: inset 0 1px color-mix(in srgb, white 20%, transparent);
+            transform: none;
+
+            svg { color: var(--overlay-text); transform: none; }
+        }
+    }
+
+    .add-dialog.add-dialog--choice {
+        position: fixed;
+        inset: auto;
+        z-index: 1000;
+        width: min(220px, calc(100vw - 24px));
+        max-height: none;
+        margin: 0;
+        overflow: visible;
+        background: color-mix(in srgb, var(--overlay-bg) 94%, transparent);
+        border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+        border-radius: var(--overlay-popup-radius);
+        box-shadow: var(--overlay-popup-shadow);
+
+        &::backdrop {
+            background: transparent;
+            backdrop-filter: none;
+        }
+
+        form { gap: 6px; padding: 9px; }
+
+        header {
+            display: flex;
+            grid-template-columns: none;
+            gap: 6px;
+            margin: 0 2px 2px 7px;
+
+            h2 {
+                grid-column: auto;
+                grid-row: auto;
+                font-size: 13px;
+                text-align: left;
+            }
+
+            .dialog-close {
+                grid-column: auto;
+                grid-row: auto;
+                width: 25px;
+                height: 25px;
+
+                svg { width: 18px; height: 18px; }
+            }
+        }
+
+        .item-type-options {
+            grid-template-columns: 1fr;
+            gap: 3px;
+        }
+
+        .item-type-options button {
+            grid-template-columns: 24px minmax(0, 1fr);
+            gap: 8px;
+            min-height: 39px;
+            padding: 6px 9px;
+            background: color-mix(in srgb, var(--overlay-surface) 46%, transparent);
+            border-color: transparent;
+            border-radius: 9px;
+            font-size: 13px;
+
+            svg { width: 19px; height: 19px; }
+
+            &:hover,
+            &:focus-visible {
+                background: color-mix(in srgb, var(--overlay-surface-hover) 70%, transparent);
+                border-color: color-mix(in srgb, var(--overlay-border) 40%, transparent);
+            }
+        }
+    }
+
+    .bookmark-menu {
+        color: var(--overlay-text);
+        background: color-mix(in srgb, var(--overlay-bg) 94%, transparent);
+        border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+        border-radius: var(--overlay-popup-radius);
+        box-shadow: var(--overlay-popup-shadow);
+
+        &:not([hidden]) { animation: overlay-panel-in .14s ease-out; }
+
+        button {
+            color: var(--overlay-text);
+            border-radius: 9px;
+            transition: color .14s ease, background-color .14s ease;
+
+            &:hover,
+            &:focus-visible {
+                background: color-mix(in srgb, var(--overlay-surface-hover) 70%, transparent);
+                outline: none;
+            }
+        }
+
+        .bookmark-menu-delete {
+            color: var(--overlay-danger);
+
+            &:hover,
+            &:focus-visible { background: color-mix(in srgb, #d85f6d 11%, var(--overlay-surface)); }
+        }
+
+        .bookmark-menu-folder-colors {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px;
+            padding: 7px 10px 8px;
+            color: color-mix(in srgb, var(--overlay-text) 72%, transparent);
+            font-size: 12px;
+
+            &[hidden] { display: none; }
+        }
+
+        .folder-color-options {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button.folder-color-dot {
+            width: 18px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0;
+            border: 1px solid rgba(255, 255, 255, .38);
+            border-radius: 50%;
+            background: var(--folder-color-dot);
+            box-shadow: inset 2px 2px 4px rgba(255, 255, 255, .2),
+                inset -2px -2px 4px rgba(29, 18, 45, .16);
+            transition: transform .14s ease, box-shadow .14s ease;
+
+            &[data-folder-color="amber"] { --folder-color-dot: #f6c56f; }
+            &[data-folder-color="mint"] { --folder-color-dot: #aedcf4; }
+            &[data-folder-color="violet"] { --folder-color-dot: #d3b9f4; }
+
+            &:hover,
+            &:focus-visible {
+                background: var(--folder-color-dot);
+                transform: scale(1.08);
+                outline: none;
+            }
+
+            &[aria-checked="true"] {
+                box-shadow: 0 0 0 2px var(--overlay-bg),
+                    0 0 0 3px rgba(255, 255, 255, .75),
+                    inset 2px 2px 4px rgba(255, 255, 255, .2);
+            }
+        }
+    }
+
+    .search-suggestions {
+        color: var(--overlay-text);
+        background: color-mix(in srgb, var(--overlay-bg) 94%, transparent);
+        border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+        border-radius: var(--overlay-popup-radius);
+        box-shadow: var(--overlay-popup-shadow);
+        scrollbar-color: color-mix(in srgb, var(--overlay-border) 58%, transparent) transparent;
+
+        &:not([hidden]) { animation: overlay-panel-in .14s ease-out; }
+
+        li:hover,
+        li.selected { background: color-mix(in srgb, var(--overlay-surface-hover) 72%, transparent); }
+
+        small { color: var(--overlay-text-muted); }
+    }
+
+    .toast {
+        color: var(--overlay-text);
+        background: color-mix(in srgb, var(--overlay-bg) 94%, transparent);
+        border-color: color-mix(in srgb, var(--overlay-border) 58%, transparent);
+        border-radius: var(--overlay-popup-radius);
+        box-shadow: var(--overlay-popup-shadow);
+
+        &:not([hidden]) { animation: overlay-panel-in .16s ease-out; }
+    }
+}
+
+@keyframes overlay-panel-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}

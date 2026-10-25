@@ -1,0 +1,292 @@
+@property --scene-ink {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #f5f7ff;
+}
+
+@property --settings-bg {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #111620;
+}
+
+@property --settings-surface {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #202738;
+}
+
+@property --settings-surface-hover {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #2a3348;
+}
+
+@property --settings-border {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #5a6680;
+}
+
+@property --settings-text {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #f5f7ff;
+}
+
+@property --settings-accent {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #91a4cc;
+}
+
+:root {
+    --solar-orbit-rgb: 170 132 196;
+}
+
+.space-scene {
+    --orbit-x: 50vw;
+    --orbit-y: 124vh;
+    --orbit-tilt: 0deg;
+    --orbit-perspective: .92;
+    --bookmark-orbit-radius: 46vh;
+    --bookmark-orbit-step: 9vh;
+    --mercury-orbit-min-radius: 72vh;
+    --mercury-orbit-radius: var(--mercury-orbit-min-radius);
+    --planet-orbit-step: 9.5vh;
+    --venus-orbit-radius: calc(var(--mercury-orbit-radius) + var(--planet-orbit-step));
+    --earth-orbit-radius: calc(var(--venus-orbit-radius) + var(--planet-orbit-step));
+    --mars-orbit-radius: calc(var(--earth-orbit-radius) + var(--planet-orbit-step));
+    --jupiter-orbit-radius: calc(var(--mars-orbit-radius) + var(--planet-orbit-step));
+    --saturn-orbit-radius: calc(var(--jupiter-orbit-radius) + var(--planet-orbit-step));
+    --uranus-orbit-radius: calc(var(--saturn-orbit-radius) + var(--planet-orbit-step));
+    --neptune-orbit-radius: calc(var(--uranus-orbit-radius) + var(--planet-orbit-step));
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    isolation: isolate;
+    pointer-events: none;
+    contain: strict;
+    background: #01020a;
+}
+
+.space-scene__backdrop,
+.space-scene__stars,
+.space-scene__planets {
+    position: absolute;
+    inset: 0;
+}
+
+.space-scene__backdrop {
+    z-index: 0;
+    background-color: #01020a;
+    background-image: url('../assets/backgrounds/default-space-bg-dark.webp');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.space-scene__backdrop::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 43%, transparent 36%, rgba(0, 0, 0, .34) 100%);
+}
+
+.space-scene__stars {
+    z-index: 2;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 9% 18%, rgba(240, 245, 255, .72) 0 .7px, transparent 1.8px),
+        radial-gradient(circle at 31% 24%, rgba(197, 217, 255, .55) 0 .6px, transparent 1.6px),
+        radial-gradient(circle at 67% 17%, rgba(255, 235, 207, .6) 0 .65px, transparent 1.8px),
+        radial-gradient(circle at 86% 37%, rgba(211, 227, 255, .6) 0 .7px, transparent 1.9px),
+        radial-gradient(circle at 18% 68%, rgba(211, 226, 255, .5) 0 .55px, transparent 1.6px),
+        radial-gradient(circle at 75% 71%, rgba(239, 225, 203, .48) 0 .6px, transparent 1.7px);
+}
+
+.space-scene__static-stars {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: .94;
+}
+
+.space-scene__planets {
+    --planet-orbit-shift-y: -16px;
+    z-index: 3;
+    overflow: visible;
+    transform: translate3d(0, var(--planet-orbit-shift-y), 0);
+    transition: transform 220ms cubic-bezier(.2, .7, .2, 1);
+    will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .space-scene__planets { transition: none; }
+}
+
+.space-scene__orbit {
+    --orbit-line-opacity: .4;
+    --orbit-depth: 0;
+    --orbit-height: calc(var(--orbit-width) * var(--orbit-perspective));
+    position: absolute;
+    inset: 0;
+    z-index: var(--orbit-depth);
+    transform: rotate(var(--orbit-tilt));
+    transform-origin: var(--orbit-x) var(--orbit-y);
+}
+
+.space-scene__orbit::before {
+    content: '';
+    position: absolute;
+    left: var(--orbit-x);
+    top: var(--orbit-y);
+    width: var(--orbit-width);
+    height: var(--orbit-height);
+    transform: translate(-50%, -50%);
+    border: 1px solid rgb(var(--solar-orbit-rgb) / var(--orbit-line-opacity));
+    border-radius: 50%;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, .46), #000 82%);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, .46), #000 82%);
+}
+
+.space-scene__orbit--mercury { --orbit-width: calc(var(--mercury-orbit-radius) * 2); --orbit-depth: 8; }
+.space-scene__orbit--venus { --orbit-width: calc(var(--venus-orbit-radius) * 2); --orbit-line-opacity: .42; --orbit-depth: 7; }
+.space-scene__orbit--bookmarks { --orbit-width: calc((var(--bookmark-orbit-radius) + var(--bookmark-orbit-step)) * 2); --orbit-line-opacity: 0; }
+.space-scene__orbit--earth { --orbit-width: calc(var(--earth-orbit-radius) * 2); --orbit-line-opacity: .44; --orbit-depth: 6; }
+.space-scene__orbit--mars { --orbit-width: calc(var(--mars-orbit-radius) * 2); --orbit-line-opacity: .42; --orbit-depth: 5; }
+.space-scene__orbit--jupiter { --orbit-width: calc(var(--jupiter-orbit-radius) * 2); --orbit-line-opacity: .46; --orbit-depth: 4; }
+.space-scene__orbit--saturn { --orbit-width: calc(var(--saturn-orbit-radius) * 2); --orbit-line-opacity: .47; --orbit-depth: 3; }
+.space-scene__orbit--uranus { --orbit-width: calc(var(--uranus-orbit-radius) * 2); --orbit-line-opacity: .42; --orbit-depth: 2; }
+.space-scene__orbit--neptune { --orbit-width: calc(var(--neptune-orbit-radius) * 2); --orbit-line-opacity: .4; --orbit-depth: 1; }
+
+.space-scene__planet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+    width: var(--planet-size);
+    aspect-ratio: 1;
+    border: 0;
+    opacity: var(--planet-opacity, .96);
+    background-image: var(--planet-image);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    offset-path: ellipse(calc(var(--orbit-width) / 2) calc(var(--orbit-height) / 2) at var(--orbit-x) var(--orbit-y));
+    offset-distance: 0%;
+    offset-rotate: 0deg;
+    animation: space-planet-orbit var(--planet-duration) linear var(--planet-delay) infinite;
+    animation-direction: var(--planet-direction, normal);
+    will-change: offset-distance;
+}
+
+.space-scene__planet.is-screen-wrapped {
+    offset-path: none;
+    animation: none;
+    will-change: transform;
+}
+
+.space-scene__planet--mercury {
+    --planet-size: clamp(57px, 7.02vw, 82px);
+    --planet-duration: 1080s;
+    --planet-delay: -594s;
+    --planet-direction: normal;
+    --planet-phase: .55;
+    --planet-image: url('../assets/planets/mercury.webp');
+}
+
+.space-scene__planet--venus {
+    --planet-size: clamp(57px, 6.68vw, 78px);
+    --planet-duration: 1860s;
+    --planet-delay: -130s;
+    --planet-direction: reverse;
+    --planet-phase: .93;
+    --planet-image: url('../assets/planets/venus.webp');
+}
+
+.space-scene__planet--earth {
+    --planet-size: clamp(67px, 7.8vw, 91px);
+    --planet-duration: 1500s;
+    --planet-delay: -465s;
+    --planet-direction: normal;
+    --planet-phase: .31;
+    overflow: visible;
+    --planet-image: url('../assets/planets/earth.webp');
+}
+
+.space-scene__earth-moon-system {
+    --moon-orbit-radius: clamp(50px, 5.6vw, 68px);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 4;
+    width: 0;
+    height: 0;
+    animation: earth-moon-orbit 92s linear -34s infinite;
+}
+
+.space-scene__earth-moon {
+    position: absolute;
+    left: var(--moon-orbit-radius);
+    top: 0;
+    width: calc(var(--planet-size) * .38);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    background: url('../assets/planets/moon.webp') center / contain no-repeat;
+}
+
+.space-scene__planet--mars {
+    --planet-size: clamp(46px, 5.55vw, 65px);
+    --planet-duration: 2220s;
+    --planet-delay: -666s;
+    --planet-direction: reverse;
+    --planet-phase: .7;
+    --planet-image: url('../assets/planets/mars.webp');
+}
+
+.space-scene__planet--jupiter {
+    --planet-size: clamp(78px, 9vw, 106px);
+    --planet-duration: 1740s;
+    --planet-delay: -139s;
+    --planet-direction: normal;
+    --planet-phase: .08;
+    --planet-image: url('../assets/planets/jupiter.webp');
+}
+
+.space-scene__planet--saturn {
+    --planet-size: clamp(113px, 12.88vw, 153px);
+    --planet-duration: 2820s;
+    --planet-delay: -1523s;
+    --planet-direction: reverse;
+    --planet-phase: .46;
+    overflow: visible;
+    --planet-image: url('../assets/planets/saturn.webp');
+}
+
+.space-scene__planet--uranus {
+    --planet-size: clamp(66px, 7.61vw, 89px);
+    --planet-duration: 2460s;
+    --planet-delay: -2066s;
+    --planet-direction: normal;
+    --planet-phase: .84;
+    --planet-image: url('../assets/planets/uranus.webp');
+}
+
+.space-scene__planet--neptune {
+    --planet-size: clamp(73px, 8.5vw, 100px);
+    --planet-duration: 3360s;
+    --planet-delay: -2621s;
+    --planet-direction: reverse;
+    --planet-phase: .22;
+    --planet-image: url('../assets/planets/neptune.webp');
+}
+
+@keyframes space-planet-orbit {
+    to { offset-distance: 100%; }
+}
+
+@keyframes earth-moon-orbit {
+    to { transform: rotate(360deg); }
+}

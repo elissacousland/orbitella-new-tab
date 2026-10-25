@@ -1,0 +1,24 @@
+html body {
+    transition: opacity 140ms ease-out, --scene-ink 1s linear,
+        --settings-bg 1s linear, --settings-surface 1s linear,
+        --settings-surface-hover 1s linear, --settings-border 1s linear,
+        --settings-text 1s linear, --settings-accent 1s linear;
+
+    .hero-info,
+    .account-toolbar,
+    .empty-tile {
+        --text: var(--scene-ink);
+        --muted: var(--scene-ink);
+    }
+
+    .search-form {
+        background-color: rgba(28, 34, 52, .255);
+
+        &:hover { background-color: rgba(42, 51, 78, .255); }
+    }
+
+    .bookmark-grid .tile {
+        --tile-opacity: var(--scene-tile-opacity, 16%);
+    }
+
+}

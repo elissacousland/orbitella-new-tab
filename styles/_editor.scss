@@ -1,0 +1,149 @@
+
+
+html {
+    body {
+
+        .creation-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .edit-bookmark-dialog {
+            form { gap: 20px; }
+
+            header { margin-bottom: 0; }
+
+            label { margin-top: 0; }
+
+            .creation-fields,
+            .edit-bookmark-url-field {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .edit-bookmark-visibility {
+                min-height: 28px;
+                margin-top: 4px;
+                gap: 10px;
+            }
+
+            .edit-bookmark-url-field { margin-top: 8px; }
+
+            .edit-bookmark-actions { margin-top: 0; }
+        }
+
+        .creation-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+
+            > section {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                margin-top: 10px;
+
+                button {
+                    padding: 10px 16px;
+                    color: var(--text);
+                    background: rgba(44, 46, 56, .90);
+                    border: 1px solid var(--glass-border);
+                    border-radius: 11px;
+                    box-shadow: var(--glass-shadow);
+                }
+
+                button[type="submit"] {
+                    color: var(--text);
+                    background: rgba(54, 56, 66, .96);
+                    border-color: var(--glass-border-hover);
+                }
+            }
+        }
+
+        .add-dialog header {
+            display: grid;
+            grid-template-columns: 30px minmax(0, 1fr) 30px;
+
+            h2 {
+                grid-column: 2;
+                grid-row: 1;
+                text-align: center;
+            }
+
+            .dialog-close {
+                grid-column: 3;
+                grid-row: 1;
+            }
+        }
+
+        .creation-back {
+            grid-column: 1;
+            grid-row: 1;
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            color: var(--muted);
+            background: transparent;
+            border: none;
+
+            svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            &:hover {
+                color: var(--text);
+                background: var(--glass-surface-hover);
+            }
+        }
+
+        .item-type-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+
+            button {
+                display: grid;
+                grid-template-columns: 30px minmax(0, 1fr);
+                align-items: center;
+                gap: 9px;
+                min-height: 50px;
+                padding: 9px 12px;
+                color: var(--text);
+                background: rgba(44, 46, 56, .90);
+                border: 1px solid var(--glass-border);
+                border-radius: 12px;
+                box-shadow: var(--glass-shadow);
+                font-weight: 600;
+                text-align: left;
+                backdrop-filter: blur(var(--glass-blur));
+                -webkit-backdrop-filter: blur(var(--glass-blur));
+                transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+
+                svg {
+                    width: 24px;
+                    height: 24px;
+                    color: var(--muted);
+                    transition: color .18s ease, transform .18s ease;
+                }
+
+                &:hover {
+                    background: rgba(54, 56, 66, .96);
+                    border-color: var(--glass-border-hover);
+                    box-shadow: var(--glass-shadow);
+                    transform: translateY(-1px);
+
+                    svg {
+                        color: var(--text);
+                        transform: scale(1.04);
+                    }
+                }
+            }
+        }
+
+    }
+}

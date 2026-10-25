@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Доступ к микрофону</title>
+    <link rel="stylesheet" href="styles/microphone.css">
+    <script src="js/microphone.js" defer></script>
+</head>
+<body>
+    <!-- доступ к микрофону -->
+    <main>
+        <div class="microphone-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+                <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" />
+                <path d="M5.5 10.5V12a6.5 6.5 0 0013 0v-1.5M12 18.5V22M8.5 22h7"
+                    fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
+        </div>
+        <h1>Доступ к микрофону</h1>
+        <p id="instructions"></p>
+        <p id="permission-status" role="status" aria-live="polite"></p>
+        <button id="request-microphone" type="button"></button>
+        <button id="microphone-settings" type="button" hidden></button>
+        <a href="index.html" id="return-home"></a>
+    </main>
+</body>
+</html>

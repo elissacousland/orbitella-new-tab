@@ -1,0 +1,100 @@
+@font-face {
+    font-family: "Nunito";
+    src: url("../assets/fonts/Nunito-Variable.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 200 1000;
+    font-display: swap;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+html {
+    min-height: 100%;
+    overflow: hidden;
+    background-color: #010207;
+
+    &.dashboard-loading body {
+        opacity: 0;
+    }
+
+    body {
+        min-height: 100vh;
+        overflow: hidden;
+        isolation: isolate;
+        opacity: 1;
+        transition: opacity 140ms ease-out;
+        --tile-width: 90px;
+        --tile-height: 90px;
+        --tile-padding: 6px;
+        --icon-box-size: 50px;
+        --icon-size: 46px;
+        --tile-opacity: 36%;
+        --tile-blur: 10px;
+        --tile-border-opacity: .07;
+        --tile-hover-strength: 30%;
+        --control-radius: 14px;
+        --scene-ink: #f5f7ff;
+        --scene-tile-opacity: 30%;
+        --settings-bg: #111620;
+        --settings-surface: #202738;
+        --settings-surface-hover: #2a3348;
+        --settings-border: #5a6680;
+        --settings-text: #f5f7ff;
+        --settings-accent: #91a4cc;
+        --text: #ffffff;
+        --muted: rgba(255, 255, 255, .76);
+        --accent: #ffffff;
+        --label-color: var(--text);
+        --glass-surface: rgba(255, 255, 255, .035);
+        --glass-surface-hover: rgba(255, 255, 255, .075);
+        --glass-border: rgba(255, 255, 255, .12);
+        --glass-border-hover: rgba(255, 255, 255, .20);
+        --glass-shadow: 0 4px 14px rgba(20, 24, 38, .035), inset 0 1px rgba(255, 255, 255, .07);
+        --glass-blur: 8px;
+        --select-option-background: #282b3a;
+        --select-option-text: #ffffff;
+        --overlay-bg: var(--settings-bg);
+        --overlay-surface: var(--settings-surface);
+        --overlay-surface-hover: var(--settings-surface-hover);
+        --overlay-border: var(--settings-border);
+        --overlay-text: var(--settings-text);
+        --overlay-text-muted: color-mix(in srgb, var(--overlay-text) 66%, transparent);
+        --overlay-accent: var(--settings-accent);
+        --overlay-danger: color-mix(in srgb, #d85f6d 72%, var(--overlay-text));
+        --overlay-shadow: 0 20px 56px rgba(12, 16, 31, .18), inset 0 1px rgba(255, 255, 255, .18);
+        --overlay-popup-shadow: 0 10px 30px rgba(12, 16, 31, .16), inset 0 1px rgba(255, 255, 255, .14);
+        --overlay-radius: 22px;
+        --overlay-surface-radius: 11px;
+        --overlay-popup-radius: 14px;
+
+        font-family: "Segoe UI", Arial, sans-serif;
+
+        color: var(--text);
+
+        background: transparent;
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        :is(button, a, input, select):focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+
+    }
+}
