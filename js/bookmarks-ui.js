@@ -253,12 +253,17 @@ function setDragPreviewAction(containerId, targetId, action) {
 
 const bookmarkGrid = document.querySelector(".bookmark-grid");
 const BOOKMARK_ORBIT_LIFT = 37;
+const SMALL_BOOKMARK_ORBIT_LIFT = 18;
 
 function getBookmarkOrbitLift() {
-    if (settings.tileSize === "extra-small" && !settings.showBookmarkTitles) {
-        return BOOKMARK_ORBIT_LIFT + 5;
+    if (settings.tileSize === "extra-small") {
+        return settings.showBookmarkTitles ? SMALL_BOOKMARK_ORBIT_LIFT :
+            SMALL_BOOKMARK_ORBIT_LIFT + 5;
     }
-    return settings.tileSize === "small" ? BOOKMARK_ORBIT_LIFT - 5 : BOOKMARK_ORBIT_LIFT;
+    if (settings.tileSize === "small") {
+        return settings.showBookmarkTitles ? BOOKMARK_ORBIT_LIFT - 5 : BOOKMARK_ORBIT_LIFT - 20;
+    }
+    return BOOKMARK_ORBIT_LIFT;
 }
 const PLANET_ORBIT_BOOKMARK_GAP = 20;
 
@@ -486,15 +491,29 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
             (baseTileDiameter + 5)), .82, 1);
     const labelRoom = getDashboardBookmarkTitleRoom();
     const orbitGap = getDashboardBookmarkOrbitGap();
+    const orbitScale = getDashboardBookmarkOrbitScale();
     const orbitLift = getBookmarkOrbitLift();
     const minimumOrbitStep = (tileDiameter + labelRoom + orbitGap) /
         Math.max(.65, orbitGeometry.perspective);
     const orbitStep = Math.max(minimumOrbitStep,
-        orbitGeometry.bookmarkStep * widthPressure);
+        orbitGeometry.bookmarkStep * widthPressure * orbitScale);
     const centerX = orbitGeometry.centerX - gridRect.left;
     let centerY = orbitGeometry.centerY - gridRect.top - orbitLift;
     const arcs = [];
     const slotMap = new Map();
+    const titleMetrics = new Map([...bookmarkGrid.querySelectorAll(":scope > .grid-cell")]
+        .map(cell => {
+            const title = cell.querySelector(".tile-title");
+            const titleStyle = title ? getComputedStyle(title) : null;
+            return [getDashboardSlotKey(
+                Number(cell.dataset.previewArc ?? cell.dataset.arc),
+                Number(cell.dataset.previewSlot ?? cell.dataset.slot)), {
+                lineCount: title?.classList.contains("tile-title--multi-word") ? 2 : 1,
+                lineHeight: parseFloat(titleStyle?.lineHeight) || 13,
+                singleWord: Boolean(title?.classList.contains("tile-title--single-word")),
+                naturalWidth: title?.scrollWidth || 0
+            }];
+        }));
     let previousRadius = 0;
 
     for (let arc = 0; arc < arcCount; arc += 1) {
@@ -519,8 +538,10 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
                 Math.abs(point.x - neighbor.x));
             const responsiveLabelInset = (1 - tileMetrics.scale) * 14;
             const horizontalSpacing = Math.min(...horizontalDistances.filter(Number.isFinite));
-            const titleTop = point.y + tileDiameter / 2 + 5;
-            const titleBottom = titleTop + 15;
+            const titleTop = point.y + tileDiameter / 2 + 3;
+            const titleMetric = titleMetrics.get(getDashboardSlotKey(arc, slot));
+            const titleBottom = titleTop + (titleMetric?.lineCount || 2) *
+                (titleMetric?.lineHeight || 13);
             const collisionSafeWidth = neighbors.reduce((safeWidth, neighbor) => {
                 const overlapsVertically = titleTop < neighbor.y + tileDiameter / 2 &&
                     titleBottom > neighbor.y - tileDiameter / 2;
@@ -539,6 +560,91 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
     }
     const positions = [...slotMap.values()];
     const padding = 12;
+    if (settings.tileSize === "small") {
+        const intersects = (first, second) =>
+            Math.min(first.right, second.right) - Math.max(first.left, second.left) > -1 &&
+            Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > -1;
+        const getTitleRect = (point, metric, titleWidth, offsetY = 0) => ({
+            left: point.x - titleWidth / 2,
+            right: point.x + titleWidth / 2,
+            top: point.y + tileDiameter / 2 + 3 + offsetY,
+            bottom: point.y + tileDiameter / 2 + 3 + offsetY +
+                (metric?.lineCount || 2) * (metric?.lineHeight || 13)
+        });
+        const tileRects = new Map(positions.map(point => [getDashboardSlotKey(point.arc, point.slot), {
+            left: point.x - tileDiameter / 2,
+            right: point.x + tileDiameter / 2,
+            top: point.y - tileDiameter / 2,
+            bottom: point.y + tileDiameter / 2
+        }]));
+        const titleRects = new Map(positions.flatMap(point => {
+            const key = getDashboardSlotKey(point.arc, point.slot);
+            const metric = titleMetrics.get(key);
+            if (!metric?.naturalWidth) return [];
+            const titleWidth = Math.min(90, Math.max(10, point.spacing - 2));
+            return [[key, getTitleRect(point, metric, titleWidth)]];
+        }));
+
+        positions.forEach(point => {
+            const key = getDashboardSlotKey(point.arc, point.slot);
+            const metric = titleMetrics.get(key);
+            if (!metric?.singleWord || metric.naturalWidth <= point.spacing - 2) return;
+            const desiredWidth = Math.min(90, metric.naturalWidth + 2);
+            const offsetY = Array.from({ length: 9 }, (_, index) => index).find(candidateOffsetY => {
+                const candidate = getTitleRect(point, metric, desiredWidth, candidateOffsetY);
+                if (candidate.left < padding || candidate.right > width - padding) return false;
+                const hitsTile = [...tileRects].some(([otherKey, tileRect]) =>
+                    otherKey !== key && intersects(candidate, tileRect));
+                if (hitsTile) return false;
+                return ![...titleRects].some(([otherKey, titleRect]) =>
+                    otherKey !== key && intersects(candidate, titleRect));
+            });
+            if (offsetY === undefined) return;
+            point.spacing = desiredWidth + 2;
+            point.titleOffsetY = offsetY;
+            titleRects.set(key, getTitleRect(point, metric, desiredWidth, offsetY));
+        });
+
+        const positionsByKey = new Map(positions.map(point =>
+            [getDashboardSlotKey(point.arc, point.slot), point]));
+        for (let pass = 0; pass < 4; pass += 1) {
+            let adjusted = false;
+            const entries = [...titleRects];
+            for (let index = 0; index < entries.length && !adjusted; index += 1) {
+                const [firstKey, firstRect] = entries[index];
+                for (let otherIndex = index + 1; otherIndex < entries.length; otherIndex += 1) {
+                    const [secondKey, secondRect] = entries[otherIndex];
+                    if (!intersects(firstRect, secondRect)) continue;
+                    const candidates = [[firstKey, firstRect], [secondKey, secondRect]]
+                        .sort((first, second) => second[1].top - first[1].top);
+                    for (const [candidateKey, currentRect] of candidates) {
+                        const point = positionsByKey.get(candidateKey);
+                        const metric = titleMetrics.get(candidateKey);
+                        if (!point || !metric) continue;
+                        const currentOffsetY = point.titleOffsetY || 0;
+                        const candidateWidth = currentRect.right - currentRect.left;
+                        const nextOffsetY = Array.from({ length: 8 }, (_, offsetIndex) =>
+                            currentOffsetY + offsetIndex + 1).find(offset => {
+                            const candidateRect = getTitleRect(point, metric, candidateWidth, offset);
+                            const hitsTile = [...tileRects].some(([tileKey, tileRect]) =>
+                                tileKey !== candidateKey && intersects(candidateRect, tileRect));
+                            if (hitsTile) return false;
+                            return ![...titleRects].some(([titleKey, titleRect]) =>
+                                titleKey !== candidateKey && intersects(candidateRect, titleRect));
+                        });
+                        if (nextOffsetY === undefined) continue;
+                        point.titleOffsetY = nextOffsetY;
+                        titleRects.set(candidateKey,
+                            getTitleRect(point, metric, candidateWidth, nextOffsetY));
+                        adjusted = true;
+                        break;
+                    }
+                    if (adjusted) break;
+                }
+            }
+            if (!adjusted) break;
+        }
+    }
     const bounds = {
         left: Math.min(...positions.map(point => point.x - tileDiameter / 2)),
         right: Math.max(...positions.map(point => point.x + tileDiameter / 2)),
@@ -785,6 +891,7 @@ function updateCarouselTransforms() {
         cell.dataset.orbitAngle = String(point.tangent);
         cell.style.setProperty("--orbit-cell-spacing", `${point.spacing.toFixed(2)}px`);
         cell.style.setProperty("--orbit-title-offset-x", `${point.titleOffsetX.toFixed(2)}px`);
+        cell.style.setProperty("--orbit-title-offset-y", `${(point.titleOffsetY || 0).toFixed(2)}px`);
         const cellX = snapToDevicePixel(point.x - geometry.tileDiameter / 2);
         const cellY = snapToDevicePixel(point.y - geometry.tileDiameter / 2);
         cell.style.transform = `translate3d(${cellX}px, ${cellY}px, 0)`;
@@ -1042,6 +1149,8 @@ function createBookmarkTile(item, compact = false) {
     tile.setAttribute("draggable", "true");
     const title = document.createElement("span");
     title.className = "tile-title";
+    title.classList.add(/\s/u.test(fullTitle.trim()) ?
+        "tile-title--multi-word" : "tile-title--single-word");
     title.textContent = fullTitle;
     title.hidden = titleHidden;
     tile.append(title);

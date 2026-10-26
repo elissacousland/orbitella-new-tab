@@ -4,7 +4,7 @@ html {
     body {
 
         &[data-bookmark-titles-visible="false"] .tile .tile-title {
-            display: none;
+            display: none !important;
         }
 
         .tile[data-favicon-shape="circle"] .favicon-box img {
@@ -100,15 +100,16 @@ html {
             --tile-padding: 3px;
             --icon-box-size: 32px;
             --icon-size: 30px;
+            --bookmark-title-max-width: 70px;
         }
 
         &[data-tile-size="small"] .bookmark-grid {
-            --tile-width: 66px;
-            --tile-height: 66px;
+            --tile-width: 63px;
+            --tile-height: 63px;
             --tile-padding: 4px;
-            --icon-box-size: 39.6px;
-            --icon-size: 37.4px;
-            --bookmark-title-max-width: 66px;
+            --icon-box-size: 37.6px;
+            --icon-size: 35.5px;
+            --bookmark-title-max-width: 90px;
         }
 
         .grid-cell {
@@ -233,8 +234,7 @@ html {
             backdrop-filter: none;
             -webkit-backdrop-filter: none;
             transform-origin: center;
-            transition: transform 200ms ease, filter 200ms ease,
-                box-shadow 200ms ease;
+            transition: filter 200ms ease, box-shadow 200ms ease;
             text-decoration: none;
             user-select: none;
             cursor: pointer;
@@ -436,7 +436,6 @@ html {
 
             &:hover,
             &:focus-visible {
-                transform: scale(1.035);
                 background-color: var(--tile-color);
                 border-color: color-mix(in srgb, var(--tile-color-light) 18%, transparent);
                 box-shadow:
@@ -630,27 +629,47 @@ html {
 
             .tile-title {
                 position: absolute;
-                top: calc(100% + 5px);
+                top: calc(100% + 3px + var(--orbit-title-offset-y, 0px));
                 left: calc(50% + var(--orbit-title-offset-x, 0px));
                 width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px),
                     var(--bookmark-title-max-width, 999px));
                 max-width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px),
                     var(--bookmark-title-max-width, 999px));
                 transform: translateX(-50%);
-                line-height: 1.15;
+                font-size: 12px;
+                line-height: 1.05;
                 letter-spacing: 0;
+                overflow-wrap: normal;
+                word-break: normal;
                 color: #eeeaf5;
                 opacity: 1;
                 text-rendering: geometricPrecision;
                 -webkit-font-smoothing: subpixel-antialiased;
                 text-shadow: 0 1px 2px rgba(0, 0, 0, .72);
                 pointer-events: none;
+
+                &--single-word {
+                    display: block;
+                    white-space: nowrap;
+                }
+
+                &--multi-word {
+                    display: -webkit-box;
+                    white-space: normal;
+                    -webkit-box-orient: vertical;
+                    -webkit-line-clamp: 2;
+                }
             }
         }
 
         .bookmark-grid .folder-tile {
             justify-content: center;
             padding: var(--tile-padding);
+        }
+
+        &[data-tile-size="small"] .bookmark-grid .tile .tile-title {
+            font-size: 13px;
+            line-height: 1.08;
         }
 
         .bookmarks > p {
@@ -913,26 +932,36 @@ html body .orbital-search-area {
         padding: 8px 9px 8px 17px;
         overflow: visible;
         transform: translate(-50%, 10px);
-        color: #f8f4e8;
-        background: rgba(8, 11, 18, .9) !important;
-        border: 1px solid rgba(235, 184, 70, .5);
-        border-radius: 17px;
-        box-shadow: 0 10px 36px rgba(0, 0, 0, .4),
-            0 0 24px rgba(225, 163, 39, .12),
-            inset 0 1px rgba(255, 236, 179, .06) !important;
+        color: #f6f0e5;
+        background: rgba(31, 27, 42, .96) !important;
+        border: 1px solid rgba(225, 181, 96, .42);
+        border-radius: 20px;
+        box-shadow: 0 8px 22px rgba(5, 4, 12, .3),
+            inset 0 1px rgba(255, 239, 201, .04) !important;
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         transition: opacity 220ms ease, transform 230ms cubic-bezier(.2, .75, .2, 1),
             visibility 0s linear 230ms;
+
+        &:hover {
+            background: rgba(35, 30, 47, .98) !important;
+            border-color: rgba(232, 190, 105, .5);
+        }
+
+        &:focus-within {
+            border-color: rgba(239, 197, 111, .66);
+            box-shadow: 0 0 0 3px rgba(226, 175, 78, .09),
+                0 8px 22px rgba(5, 4, 12, .3) !important;
+        }
 
         .search-icon {
             width: 22px;
             height: 22px;
             flex: none;
-            color: #e8c36b;
+            color: #e7c77f;
         }
 
         input {
@@ -941,34 +970,56 @@ html body .orbital-search-area {
             min-width: 0;
             height: 38px;
             padding: 0 3px;
-            color: #f8f4e8;
-            caret-color: #f2c65e;
+            color: #f6f0e5;
+            caret-color: #edc66e;
         }
 
         input::placeholder {
-            color: rgba(238, 232, 215, .58);
+            color: rgba(226, 218, 207, .62);
         }
 
         button {
             position: relative;
             z-index: 1;
-            color: #f8f4e8;
+            color: #f6f0e5;
         }
 
         button[type="button"] {
             width: 36px;
             min-width: 36px;
             padding: 7px;
-            color: #e8c36b;
+            color: #e7c77f;
+            background: rgba(225, 181, 96, .08);
+            border: 1px solid rgba(231, 193, 116, .14);
+            border-radius: 12px;
+
+            &:hover {
+                background: rgba(225, 181, 96, .14);
+                border-color: rgba(231, 193, 116, .24);
+            }
+
+            &[aria-pressed="true"] {
+                color: #fff8f0;
+                background: #a94757;
+                border-color: rgba(255, 221, 213, .28);
+            }
         }
 
         button[type="submit"] {
             min-height: 36px;
             padding: 0 16px;
             font-size: 13px;
-            color: #f8f4e8;
-            background: rgba(225, 169, 54, .16);
-            border-color: rgba(239, 193, 91, .34);
+            color: #fff5df;
+            background: rgba(210, 157, 68, .2);
+            border-color: rgba(235, 193, 109, .36);
+            border-radius: 13px;
+            box-shadow: none;
+
+            &:hover,
+            &:focus-visible {
+                background: rgba(218, 165, 75, .28);
+                border-color: rgba(241, 202, 124, .5);
+            }
         }
     }
 

@@ -31,15 +31,21 @@ let folderColors = new Map();
 const dashboardLayoutProfilesPerSize = 6;
 
 const dashboardBookmarkTitleRoom = Object.freeze({
-    "extra-small": 21,
-    small: 22,
+    "extra-small": 29,
+    small: 32,
     medium: 24
 });
 
 const dashboardBookmarkSpacing = Object.freeze({
-    "extra-small": { titledGap: 18, compactGap: 8, titledOrbitGap: 12, compactOrbitGap: 6 },
-    small: { titledGap: 17, compactGap: 11, titledOrbitGap: 9, compactOrbitGap: 7 },
-    medium: { titledGap: 24, compactGap: 12, titledOrbitGap: 16, compactOrbitGap: 9 }
+    "extra-small": {
+        titledGap: 18, compactGap: 8, titledOrbitGap: 0, compactOrbitGap: 0, orbitScale: .84
+    },
+    small: {
+        titledGap: 12, compactGap: 10, titledOrbitGap: 7, compactOrbitGap: 8, orbitScale: .9
+    },
+    medium: {
+        titledGap: 24, compactGap: 12, titledOrbitGap: 16, compactOrbitGap: 9, orbitScale: 1
+    }
 });
 
 function getDashboardBookmarkTitleRoom() {
@@ -55,6 +61,11 @@ function getDashboardBookmarkGap() {
 function getDashboardBookmarkOrbitGap() {
     const spacing = dashboardBookmarkSpacing[settings.tileSize] || dashboardBookmarkSpacing.medium;
     return settings.showBookmarkTitles ? spacing.titledOrbitGap : spacing.compactOrbitGap;
+}
+
+function getDashboardBookmarkOrbitScale() {
+    const spacing = dashboardBookmarkSpacing[settings.tileSize] || dashboardBookmarkSpacing.medium;
+    return spacing.orbitScale || 1;
 }
 
 function getBookmarkSyncKey(node, path) {
@@ -207,7 +218,7 @@ function getDashboardEllipseArcLength(radiusX, radiusY, halfSpan) {
 // считаем размеры дуг
 function getDashboardArcMetrics(arc) {
     const arcIndex = Math.max(0, Number(arc) || 0);
-    const tileDiameter = ({ "extra-small": 54, small: 66, medium: 76 })[settings.tileSize] || 76;
+    const tileDiameter = ({ "extra-small": 54, small: 63, medium: 76 })[settings.tileSize] || 76;
     const spacing = dashboardBookmarkSpacing[settings.tileSize] || dashboardBookmarkSpacing.medium;
     const titledLabelRoom = dashboardBookmarkTitleRoom[settings.tileSize] ||
         dashboardBookmarkTitleRoom.medium;
@@ -223,7 +234,7 @@ function getDashboardArcMetrics(arc) {
     };
     const geometry = typeof globalThis.orbitalSystem?.readGeometry === "function" ?
         globalThis.orbitalSystem.readGeometry() : fallbackGeometry;
-    const effectiveOrbitStep = Math.max(geometry.bookmarkStep,
+    const effectiveOrbitStep = Math.max(geometry.bookmarkStep * (spacing.orbitScale || 1),
         (tileDiameter + titledLabelRoom + spacing.titledOrbitGap) /
             Math.max(.65, geometry.perspective));
     const radiusX = geometry.bookmarkBaseRadius + effectiveOrbitStep * arcIndex;

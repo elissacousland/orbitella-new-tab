@@ -191,10 +191,14 @@ assert(bookmarkUiScript.includes("function getBookmarkGroupTop") &&
 "Раскладка: независимое положение солнца/закладок или адаптация орбит настроены неверно");
 assert(!settingsScript.includes("DASHBOARD_COMPACT_TILE_GAP") &&
     bookmarkStoreScript.includes("if (!settings.showBookmarkTitles) return 0") &&
+    bookmarkStoreScript.includes('titledOrbitGap: 0, compactOrbitGap: 0, orbitScale: .84') &&
+    bookmarkStoreScript.includes('titledGap: 12, compactGap: 10, titledOrbitGap: 7, compactOrbitGap: 8, orbitScale: .9') &&
+    bookmarkStoreScript.includes("function getDashboardBookmarkOrbitScale()") &&
     bookmarkStoreScript.includes("const minimumSlotSpacing = tileDiameter + spacing.titledGap") &&
     bookmarkStoreScript.includes("reach: visibleReach") &&
     bookmarkUiScript.includes("const requestedGap = getDashboardBookmarkGap()") &&
     bookmarkUiScript.includes("const orbitGap = getDashboardBookmarkOrbitGap()") &&
+    bookmarkUiScript.includes("const orbitScale = getDashboardBookmarkOrbitScale()") &&
     bookmarkUiScript.includes("const fixedStep = Math.min(maximumStep") &&
     bookmarkUiScript.includes("const firstLength = (totalLength - fixedStep * (capacity - 1)) / 2") &&
     bookmarkUiScript.includes("tileDiameter + tileMetrics.gap") &&
@@ -226,7 +230,7 @@ assert(settingsDialogMarkup.includes('class="settings-field settings-inline"') &
     (settingsDialogMarkup.match(/id="tile-size-select"[\s\S]*?<\/select>/)?.[0]
         .match(/<option\b/g) || []).length === 2 &&
     settingsDialogMarkup.includes('value="extra-small" data-i18n="small"') &&
-    settingsDialogMarkup.includes('value="small" data-i18n="medium"') &&
+    settingsDialogMarkup.includes('value="small" data-i18n="large"') &&
     !settingsDialogMarkup.includes('value="medium" data-i18n="large"') &&
     (settingsDialogMarkup.match(/type="checkbox"/g) || []).length === 3 &&
     (settingsDialogMarkup.match(/type="radio"/g) || []).length === 0 &&
@@ -264,7 +268,7 @@ assert(sceneStyles.includes("z-index: var(--orbit-depth)") &&
 assert((sceneStyles.match(/--planet-direction: normal/g) || []).length === 4 &&
     (sceneStyles.match(/--planet-direction: reverse/g) || []).length === 4 &&
     (sceneStyles.match(/--planet-phase: /g) || []).length === 8 &&
-    [1080, 1860, 1500, 2220, 1740, 2820, 2460, 3360]
+    [1087, 1879, 1511, 2237, 1753, 2837, 2473, 3371]
         .every(duration => sceneStyles.includes(`--planet-duration: ${duration}s`)) &&
     backgroundScript.includes('getPropertyValue("--planet-direction")') &&
     backgroundScript.includes('getPropertyValue("--planet-phase")') &&
@@ -317,12 +321,25 @@ assert(bookmarkStyles.includes("background: rgba(41, 33, 61, .88)") &&
     compiledStyles.includes("transform: rotate(45deg)") &&
     !compiledStyles.includes("background-color: rgba(28, 34, 52, 0.2805)"),
 "Настройки: кнопка не использует новый мягкий фон, тонкую рамку или поворот шестерёнки");
-assert(bookmarkStyles.includes("top: calc(100% + 5px)") &&
-    /"extra-small": 21,\s+small: 22,\s+medium: 24/.test(bookmarkStoreScript) &&
+assert(bookmarkStyles.includes("top: calc(100% + 3px + var(--orbit-title-offset-y, 0px))") &&
+    /"extra-small": 29,\s+small: 32,\s+medium: 24/.test(bookmarkStoreScript) &&
+    bookmarkStyles.includes("-webkit-line-clamp: 2") &&
+    bookmarkStyles.includes("&--single-word") &&
+    bookmarkStyles.includes("--bookmark-title-max-width: 90px") &&
+    bookmarkStyles.includes('&[data-tile-size="small"] .bookmark-grid .tile .tile-title') &&
+    bookmarkStyles.includes("overflow-wrap: normal") &&
+    bookmarkUiScript.includes('"tile-title--multi-word" : "tile-title--single-word"') &&
     bookmarkStoreScript.includes("const minimumSlotSpacing = tileDiameter + spacing.titledGap") &&
     bookmarkStoreScript.includes("tileDiameter + titledLabelRoom + spacing.titledOrbitGap") &&
     bookmarkStoreScript.includes("tileDiameter / 2 - 20") &&
     bookmarkUiScript.includes("tileDiameter + labelRoom + orbitGap") &&
+    bookmarkUiScript.includes("const titleMetrics = new Map") &&
+    bookmarkUiScript.includes("const titleRects = new Map") &&
+    bookmarkUiScript.includes("const positionsByKey = new Map") &&
+    bookmarkUiScript.includes("for (let pass = 0; pass < 4; pass += 1)") &&
+    bookmarkUiScript.includes("metric.naturalWidth <= point.spacing - 2") &&
+    bookmarkUiScript.includes("point.titleOffsetY = offsetY") &&
+    bookmarkUiScript.includes('setProperty("--orbit-title-offset-y"') &&
     bookmarkUiScript.includes('cell.querySelector(".tile:not(.empty-tile)")') &&
     bookmarkUiScript.includes("viewportBottom - activeBottom") &&
     bookmarkUiScript.includes("verticalShift = Math.min(0, verticalShift)") &&
@@ -340,8 +357,8 @@ assert(bookmarkStyles.includes("linear-gradient(148deg") &&
     bookmarkStyles.includes('&[data-planet-pattern="4"]') &&
     bookmarkStyles.includes("border-radius: 51% 49% 48% 52%") &&
     bookmarkStyles.includes("&::after") &&
-    bookmarkStyles.includes("transform: scale(1.035)") &&
-    bookmarkStyles.includes("transition: transform 200ms ease") &&
+    !bookmarkStyles.includes("transform: scale(1.035)") &&
+    bookmarkStyles.includes("transition: filter 200ms ease, box-shadow 200ms ease") &&
     bookmarkStyles.includes("var(--favicon-visual-scale, 1)") &&
     bookmarkStyles.includes("backdrop-filter: none") &&
     bookmarkStyles.includes("&::before") &&
@@ -409,7 +426,9 @@ assert((dashboardHtml.match(/class="folder-color-dot"/g) || []).length === 3 &&
     overlayStyles.includes('&[aria-checked="true"]'),
 "Папки: выбор одного из трёх цветов или его сохранение настроены неверно");
 assert(bookmarkUiScript.includes("const BOOKMARK_ORBIT_LIFT = 37") &&
-    bookmarkUiScript.includes('settings.tileSize === "small" ? BOOKMARK_ORBIT_LIFT - 5') &&
+    bookmarkUiScript.includes("const SMALL_BOOKMARK_ORBIT_LIFT = 18") &&
+    bookmarkUiScript.includes("SMALL_BOOKMARK_ORBIT_LIFT + 5") &&
+    bookmarkUiScript.includes('settings.showBookmarkTitles ? BOOKMARK_ORBIT_LIFT - 5 : BOOKMARK_ORBIT_LIFT - 20') &&
     bookmarkUiScript.includes("gridRect.top - orbitLift"),
 "bookmarks-ui.js: орбиты закладок не подняты над солнцем");
 assert(bookmarkUiScript.includes('tile.setAttribute("draggable", "true")') &&
@@ -426,8 +445,8 @@ assert(bookmarkStyles.includes('font-family: "Nunito", sans-serif') &&
     bookmarkStyles.includes("font-weight: 600") &&
     bookmarkStyles.includes("font-size: 13px") &&
     bookmarkStyles.includes("color: #eeeaf5") &&
-    bookmarkStyles.includes("line-height: 1.15") &&
-    bookmarkStyles.includes("top: calc(100% + 5px)") &&
+    bookmarkStyles.includes("line-height: 1.05") &&
+    bookmarkStyles.includes("top: calc(100% + 3px + var(--orbit-title-offset-y, 0px))") &&
     bookmarkStyles.includes("var(--orbit-slot-gap))) - 2px") &&
     !baseStyles.includes("--tile-font-size") &&
     !bookmarkStyles.includes("--tile-font-size") &&

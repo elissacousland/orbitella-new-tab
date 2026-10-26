@@ -84,12 +84,12 @@ const browserMocks = String.raw`
         storage: { local: storageArea("local"), sync: storageArea("sync"), onChanged: event },
         bookmarks: {
             getTree: async () => [{ children: [{ id: "1", children: [
-                { id: "11", title: "Alpha", url: "https://example.com/alpha" },
-                { id: "12", title: "Beta", url: "https://example.com/beta" },
-                { id: "13", title: "Gamma", url: "https://example.com/gamma" },
-                { id: "14", title: "Delta", url: "https://example.com/delta" },
-                { id: "15", title: "Epsilon", url: "https://example.com/epsilon" },
-                { id: "16", title: "Zeta", url: "https://example.com/zeta" }
+                { id: "11", title: "Pinterest", url: "https://example.com/pinterest" },
+                { id: "12", title: "AliExpress", url: "https://example.com/aliexpress" },
+                { id: "13", title: "Microsoft Azure", url: "https://example.com/azure" },
+                { id: "14", title: "Записи уроков", url: "https://example.com/lessons" },
+                { id: "15", title: "HCP Terraform", url: "https://example.com/terraform" },
+                { id: "16", title: "ExtraordinarilyLongBookmark", url: "https://example.com/long" }
             ] }] }],
             onMoved: event, onChildrenReordered: event, onImportEnded: event,
             onCreated: event, onRemoved: event, onChanged: event
@@ -251,6 +251,29 @@ const evaluated = await call("Runtime.evaluate", {
             const grid = document.querySelector(".bookmark-grid").getBoundingClientRect();
             const center = grid.left + carouselState.geometry.centerX + carouselState.panX;
             return Math.abs(center - innerWidth / 2) < 1 && Math.abs(carouselState.panX) < .1;
+        })(),
+        bookmarkTitleWrapping: (() => {
+            const titles = [...document.querySelectorAll(".bookmark-grid .tile-title")];
+            const byText = text => titles.find(title => title.textContent === text);
+            const singleWords = ["Pinterest", "AliExpress", "ExtraordinarilyLongBookmark"]
+                .map(byText);
+            const multipleWords = ["Microsoft Azure", "Записи уроков", "HCP Terraform"]
+                .map(byText);
+            const commonSingleWordsVisible = singleWords.slice(0, 2).every(title =>
+                title && title.scrollWidth <= title.clientWidth + 1);
+            const largeTitleFont = document.body.dataset.tileSize !== "small" ||
+                singleWords.filter(Boolean).every(title =>
+                    parseFloat(getComputedStyle(title).fontSize) >= 13);
+            return singleWords.every(title => title &&
+                title.classList.contains("tile-title--single-word") &&
+                getComputedStyle(title).whiteSpace === "nowrap" &&
+                title.closest(".tile").dataset.fullTitle === title.textContent) &&
+                multipleWords.every(title => title &&
+                    title.classList.contains("tile-title--multi-word") &&
+                    getComputedStyle(title).whiteSpace === "normal" &&
+                    getComputedStyle(title).wordBreak === "normal" &&
+                    title.closest(".tile").dataset.fullTitle === title.textContent) &&
+                commonSingleWordsVisible && largeTitleFont;
         })(),
         bookmarkOrbitLift: (() => {
             const grid = document.querySelector(".bookmark-grid").getBoundingClientRect();
@@ -1063,6 +1086,23 @@ for (const viewport of [
             });
             const bookmarkTitleOverlaps = bookmarkTitles.flatMap((first, index) =>
                 bookmarkTitles.slice(index + 1).filter(second => intersects(first, second)));
+            const bookmarkTitleOverlapDetails = bookmarkTitleElements.flatMap((title, index) => {
+                const first = title.getBoundingClientRect();
+                return bookmarkTitleElements.slice(index + 1).flatMap(other =>
+                    intersects(first, other.getBoundingClientRect()) ? [{
+                        first: title.textContent,
+                        second: other.textContent,
+                        firstBounds: {
+                            left: first.left, right: first.right,
+                            top: first.top, bottom: first.bottom
+                        },
+                        secondBounds: (() => {
+                            const second = other.getBoundingClientRect();
+                            return { left: second.left, right: second.right,
+                                top: second.top, bottom: second.bottom };
+                        })()
+                    }] : []);
+            });
             const bookmarkExtents = {
                 left: Math.min(...bookmarkTiles.map(bounds => bounds.left)),
                 right: Math.max(...bookmarkTiles.map(bounds => bounds.right)),
@@ -1139,6 +1179,7 @@ for (const viewport of [
                 bookmarkOverlaps,
                 bookmarkTitleTileOverlaps: bookmarkTitleTileOverlaps.length,
                 bookmarkTitleOverlaps: bookmarkTitleOverlaps.length,
+                bookmarkTitleOverlapDetails,
                 bookmarkUnsafeTiles,
                 bookmarkUnsafeTitles,
                 searchSafe,
@@ -1258,7 +1299,7 @@ socket.close();
 
 const valid = state?.title === "Orbitella" && state.scene && state.spaceBackground &&
     state.permanentCosmicScene && state.layoutStability?.ok && state.compactBookmarkCounts?.ok &&
-    state.bookmarkGrid && state.clockGlass && state.clockGlassEffect && state.bookmarkCartoonStyle && state.faviconSizing && state.faviconContrast && state.bookmarkCentering &&
+    state.bookmarkGrid && state.clockGlass && state.clockGlassEffect && state.bookmarkCartoonStyle && state.faviconSizing && state.faviconContrast && state.bookmarkCentering && state.bookmarkTitleWrapping &&
     state.bookmarkOrbitLift && state.accessibility?.ok && state.weatherState?.ok &&
     state.settings?.ok && state.planets === 8 &&
     state.earthMoons === 1 && state.moonTexture && state.otherMoons === 0 &&

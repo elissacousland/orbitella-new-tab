@@ -438,7 +438,7 @@ html body .search-form button[data-voice-state=error] {
 }
 
 html body[data-bookmark-titles-visible=false] .tile .tile-title {
-  display: none;
+  display: none !important;
 }
 html body .bookmarks {
   width: min(1500px, 100%);
@@ -514,14 +514,15 @@ html body[data-tile-size=extra-small] .bookmark-grid {
   --tile-padding: 3px;
   --icon-box-size: 32px;
   --icon-size: 30px;
+  --bookmark-title-max-width: 70px;
 }
 html body[data-tile-size=small] .bookmark-grid {
-  --tile-width: 66px;
-  --tile-height: 66px;
+  --tile-width: 63px;
+  --tile-height: 63px;
   --tile-padding: 4px;
-  --icon-box-size: 39.6px;
-  --icon-size: 37.4px;
-  --bookmark-title-max-width: 66px;
+  --icon-box-size: 37.6px;
+  --icon-size: 35.5px;
+  --bookmark-title-max-width: 90px;
 }
 html body .grid-cell {
   position: absolute;
@@ -623,7 +624,7 @@ html body .tile {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   transform-origin: center;
-  transition: transform 200ms ease, filter 200ms ease, box-shadow 200ms ease;
+  transition: filter 200ms ease, box-shadow 200ms ease;
   text-decoration: none;
   user-select: none;
   cursor: pointer;
@@ -799,7 +800,6 @@ html body .tile[data-planet-pattern="4"] .tile-surface-detail {
   transform: rotate(-3deg);
 }
 html body .tile:hover, html body .tile:focus-visible {
-  transform: scale(1.035);
   background-color: var(--tile-color);
   border-color: color-mix(in srgb, var(--tile-color-light) 18%, transparent);
   box-shadow: 0 5px 11px rgba(5, 8, 20, 0.19), inset 5px 5px 11px color-mix(in srgb, var(--tile-color-light) 13%, transparent), inset -8px -9px 13px color-mix(in srgb, var(--tile-color-deep) 19%, transparent);
@@ -964,13 +964,16 @@ html body .bookmark-grid .tile .folder-mini-icon svg {
 }
 html body .bookmark-grid .tile .tile-title {
   position: absolute;
-  top: calc(100% + 5px);
+  top: calc(100% + 3px + var(--orbit-title-offset-y, 0px));
   left: calc(50% + var(--orbit-title-offset-x, 0px));
   width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px), var(--bookmark-title-max-width, 999px));
   max-width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px), var(--bookmark-title-max-width, 999px));
   transform: translateX(-50%);
-  line-height: 1.15;
+  font-size: 12px;
+  line-height: 1.05;
   letter-spacing: 0;
+  overflow-wrap: normal;
+  word-break: normal;
   color: #eeeaf5;
   opacity: 1;
   text-rendering: geometricPrecision;
@@ -978,9 +981,23 @@ html body .bookmark-grid .tile .tile-title {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
   pointer-events: none;
 }
+html body .bookmark-grid .tile .tile-title--single-word {
+  display: block;
+  white-space: nowrap;
+}
+html body .bookmark-grid .tile .tile-title--multi-word {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 html body .bookmark-grid .folder-tile {
   justify-content: center;
   padding: var(--tile-padding);
+}
+html body[data-tile-size=small] .bookmark-grid .tile .tile-title {
+  font-size: 13px;
+  line-height: 1.08;
 }
 html body .bookmarks > p {
   margin-top: 15px;
@@ -1206,23 +1223,31 @@ html body .orbital-search-area .search-form.orbital-search-form {
   padding: 8px 9px 8px 17px;
   overflow: visible;
   transform: translate(-50%, 10px);
-  color: #f8f4e8;
-  background: rgba(8, 11, 18, 0.9) !important;
-  border: 1px solid rgba(235, 184, 70, 0.5);
-  border-radius: 17px;
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.4), 0 0 24px rgba(225, 163, 39, 0.12), inset 0 1px rgba(255, 236, 179, 0.06) !important;
+  color: #f6f0e5;
+  background: rgba(31, 27, 42, 0.96) !important;
+  border: 1px solid rgba(225, 181, 96, 0.42);
+  border-radius: 20px;
+  box-shadow: 0 8px 22px rgba(5, 4, 12, 0.3), inset 0 1px rgba(255, 239, 201, 0.04) !important;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition: opacity 220ms ease, transform 230ms cubic-bezier(0.2, 0.75, 0.2, 1), visibility 0s linear 230ms;
+}
+html body .orbital-search-area .search-form.orbital-search-form:hover {
+  background: rgba(35, 30, 47, 0.98) !important;
+  border-color: rgba(232, 190, 105, 0.5);
+}
+html body .orbital-search-area .search-form.orbital-search-form:focus-within {
+  border-color: rgba(239, 197, 111, 0.66);
+  box-shadow: 0 0 0 3px rgba(226, 175, 78, 0.09), 0 8px 22px rgba(5, 4, 12, 0.3) !important;
 }
 html body .orbital-search-area .search-form.orbital-search-form .search-icon {
   width: 22px;
   height: 22px;
   flex: none;
-  color: #e8c36b;
+  color: #e7c77f;
 }
 html body .orbital-search-area .search-form.orbital-search-form input {
   flex: 1 1 auto;
@@ -1230,30 +1255,48 @@ html body .orbital-search-area .search-form.orbital-search-form input {
   min-width: 0;
   height: 38px;
   padding: 0 3px;
-  color: #f8f4e8;
-  caret-color: #f2c65e;
+  color: #f6f0e5;
+  caret-color: #edc66e;
 }
 html body .orbital-search-area .search-form.orbital-search-form input::placeholder {
-  color: rgba(238, 232, 215, 0.58);
+  color: rgba(226, 218, 207, 0.62);
 }
 html body .orbital-search-area .search-form.orbital-search-form button {
   position: relative;
   z-index: 1;
-  color: #f8f4e8;
+  color: #f6f0e5;
 }
 html body .orbital-search-area .search-form.orbital-search-form button[type=button] {
   width: 36px;
   min-width: 36px;
   padding: 7px;
-  color: #e8c36b;
+  color: #e7c77f;
+  background: rgba(225, 181, 96, 0.08);
+  border: 1px solid rgba(231, 193, 116, 0.14);
+  border-radius: 12px;
+}
+html body .orbital-search-area .search-form.orbital-search-form button[type=button]:hover {
+  background: rgba(225, 181, 96, 0.14);
+  border-color: rgba(231, 193, 116, 0.24);
+}
+html body .orbital-search-area .search-form.orbital-search-form button[type=button][aria-pressed=true] {
+  color: #fff8f0;
+  background: #a94757;
+  border-color: rgba(255, 221, 213, 0.28);
 }
 html body .orbital-search-area .search-form.orbital-search-form button[type=submit] {
   min-height: 36px;
   padding: 0 16px;
   font-size: 13px;
-  color: #f8f4e8;
-  background: rgba(225, 169, 54, 0.16);
-  border-color: rgba(239, 193, 91, 0.34);
+  color: #fff5df;
+  background: rgba(210, 157, 68, 0.2);
+  border-color: rgba(235, 193, 109, 0.36);
+  border-radius: 13px;
+  box-shadow: none;
+}
+html body .orbital-search-area .search-form.orbital-search-form button[type=submit]:hover, html body .orbital-search-area .search-form.orbital-search-form button[type=submit]:focus-visible {
+  background: rgba(218, 165, 75, 0.28);
+  border-color: rgba(241, 202, 124, 0.5);
 }
 html body .orbital-search-area.search-area--expanded .search-form.orbital-search-form {
   transform: translate(-50%, 0);
@@ -2396,28 +2439,28 @@ html body .item-type-options button:hover svg {
 
 .space-scene__planet--mercury {
   --planet-size: clamp(57px, 7.02vw, 82px);
-  --planet-duration: 1080s;
-  --planet-delay: -594s;
+  --planet-duration: 1087s;
+  --planet-delay: -120s;
   --planet-direction: normal;
-  --planet-phase: .55;
+  --planet-phase: .11;
   --planet-image: url('../assets/planets/mercury.webp');
 }
 
 .space-scene__planet--venus {
   --planet-size: clamp(57px, 6.68vw, 78px);
-  --planet-duration: 1860s;
-  --planet-delay: -130s;
+  --planet-duration: 1879s;
+  --planet-delay: -526s;
   --planet-direction: reverse;
-  --planet-phase: .93;
+  --planet-phase: .72;
   --planet-image: url('../assets/planets/venus.webp');
 }
 
 .space-scene__planet--earth {
   --planet-size: clamp(67px, 7.8vw, 91px);
-  --planet-duration: 1500s;
-  --planet-delay: -465s;
+  --planet-duration: 1511s;
+  --planet-delay: -589s;
   --planet-direction: normal;
-  --planet-phase: .31;
+  --planet-phase: .39;
   overflow: visible;
   --planet-image: url('../assets/planets/earth.webp');
 }
@@ -2445,47 +2488,47 @@ html body .item-type-options button:hover svg {
 
 .space-scene__planet--mars {
   --planet-size: clamp(46px, 5.55vw, 65px);
-  --planet-duration: 2220s;
-  --planet-delay: -666s;
-  --planet-direction: reverse;
-  --planet-phase: .7;
+  --planet-duration: 2237s;
+  --planet-delay: -1969s;
+  --planet-direction: normal;
+  --planet-phase: .88;
   --planet-image: url('../assets/planets/mars.webp');
 }
 
 .space-scene__planet--jupiter {
   --planet-size: clamp(78px, 9vw, 106px);
-  --planet-duration: 1740s;
-  --planet-delay: -139s;
-  --planet-direction: normal;
-  --planet-phase: .08;
+  --planet-duration: 1753s;
+  --planet-delay: -1350s;
+  --planet-direction: reverse;
+  --planet-phase: .23;
   --planet-image: url('../assets/planets/jupiter.webp');
 }
 
 .space-scene__planet--saturn {
   --planet-size: clamp(113px, 12.88vw, 153px);
-  --planet-duration: 2820s;
-  --planet-delay: -1523s;
-  --planet-direction: reverse;
-  --planet-phase: .46;
+  --planet-duration: 2837s;
+  --planet-delay: -1617s;
+  --planet-direction: normal;
+  --planet-phase: .57;
   overflow: visible;
   --planet-image: url('../assets/planets/saturn.webp');
 }
 
 .space-scene__planet--uranus {
   --planet-size: clamp(66px, 7.61vw, 89px);
-  --planet-duration: 2460s;
-  --planet-delay: -2066s;
-  --planet-direction: normal;
-  --planet-phase: .84;
+  --planet-duration: 2473s;
+  --planet-delay: -148s;
+  --planet-direction: reverse;
+  --planet-phase: .94;
   --planet-image: url('../assets/planets/uranus.webp');
 }
 
 .space-scene__planet--neptune {
   --planet-size: clamp(73px, 8.5vw, 100px);
-  --planet-duration: 3360s;
-  --planet-delay: -2621s;
+  --planet-duration: 3371s;
+  --planet-delay: -1820s;
   --planet-direction: reverse;
-  --planet-phase: .22;
+  --planet-phase: .46;
   --planet-image: url('../assets/planets/neptune.webp');
 }
 

@@ -190,28 +190,28 @@
 
 .space-scene__planet--mercury {
     --planet-size: clamp(57px, 7.02vw, 82px);
-    --planet-duration: 1080s;
-    --planet-delay: -594s;
+    --planet-duration: 1087s;
+    --planet-delay: -120s;
     --planet-direction: normal;
-    --planet-phase: .55;
+    --planet-phase: .11;
     --planet-image: url('../assets/planets/mercury.webp');
 }
 
 .space-scene__planet--venus {
     --planet-size: clamp(57px, 6.68vw, 78px);
-    --planet-duration: 1860s;
-    --planet-delay: -130s;
+    --planet-duration: 1879s;
+    --planet-delay: -526s;
     --planet-direction: reverse;
-    --planet-phase: .93;
+    --planet-phase: .72;
     --planet-image: url('../assets/planets/venus.webp');
 }
 
 .space-scene__planet--earth {
     --planet-size: clamp(67px, 7.8vw, 91px);
-    --planet-duration: 1500s;
-    --planet-delay: -465s;
+    --planet-duration: 1511s;
+    --planet-delay: -589s;
     --planet-direction: normal;
-    --planet-phase: .31;
+    --planet-phase: .39;
     overflow: visible;
     --planet-image: url('../assets/planets/earth.webp');
 }
@@ -239,47 +239,47 @@
 
 .space-scene__planet--mars {
     --planet-size: clamp(46px, 5.55vw, 65px);
-    --planet-duration: 2220s;
-    --planet-delay: -666s;
-    --planet-direction: reverse;
-    --planet-phase: .7;
+    --planet-duration: 2237s;
+    --planet-delay: -1969s;
+    --planet-direction: normal;
+    --planet-phase: .88;
     --planet-image: url('../assets/planets/mars.webp');
 }
 
 .space-scene__planet--jupiter {
     --planet-size: clamp(78px, 9vw, 106px);
-    --planet-duration: 1740s;
-    --planet-delay: -139s;
-    --planet-direction: normal;
-    --planet-phase: .08;
+    --planet-duration: 1753s;
+    --planet-delay: -1350s;
+    --planet-direction: reverse;
+    --planet-phase: .23;
     --planet-image: url('../assets/planets/jupiter.webp');
 }
 
 .space-scene__planet--saturn {
     --planet-size: clamp(113px, 12.88vw, 153px);
-    --planet-duration: 2820s;
-    --planet-delay: -1523s;
-    --planet-direction: reverse;
-    --planet-phase: .46;
+    --planet-duration: 2837s;
+    --planet-delay: -1617s;
+    --planet-direction: normal;
+    --planet-phase: .57;
     overflow: visible;
     --planet-image: url('../assets/planets/saturn.webp');
 }
 
 .space-scene__planet--uranus {
     --planet-size: clamp(66px, 7.61vw, 89px);
-    --planet-duration: 2460s;
-    --planet-delay: -2066s;
-    --planet-direction: normal;
-    --planet-phase: .84;
+    --planet-duration: 2473s;
+    --planet-delay: -148s;
+    --planet-direction: reverse;
+    --planet-phase: .94;
     --planet-image: url('../assets/planets/uranus.webp');
 }
 
 .space-scene__planet--neptune {
     --planet-size: clamp(73px, 8.5vw, 100px);
-    --planet-duration: 3360s;
-    --planet-delay: -2621s;
+    --planet-duration: 3371s;
+    --planet-delay: -1820s;
     --planet-direction: reverse;
-    --planet-phase: .22;
+    --planet-phase: .46;
     --planet-image: url('../assets/planets/neptune.webp');
 }
 
