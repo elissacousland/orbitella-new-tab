@@ -40,17 +40,39 @@ const faviconAppearanceRequests = new Map();
 const FAVICON_SPHERE_SCALE = .94;
 
 const tileColorFamilies = {
-    red: ["hsl(352 54% 57%)", "hsl(8 55% 58%)", "hsl(340 51% 58%)"],
-    orange: ["hsl(20 55% 59%)", "hsl(28 52% 60%)", "hsl(13 51% 58%)"],
-    yellow: ["hsl(42 51% 57%)", "hsl(48 48% 57%)", "hsl(35 51% 56%)"],
-    green: ["hsl(145 45% 50%)", "hsl(163 43% 50%)", "hsl(128 42% 51%)"],
-    cyan: ["hsl(188 48% 53%)", "hsl(177 45% 52%)", "hsl(196 47% 55%)"],
-    blue: ["hsl(211 53% 57%)", "hsl(223 50% 58%)", "hsl(202 51% 55%)"],
-    violet: ["hsl(258 45% 60%)", "hsl(274 44% 59%)", "hsl(245 42% 61%)"],
-    pink: ["hsl(324 49% 60%)", "hsl(338 47% 60%)", "hsl(310 45% 59%)"],
+    red: ["hsl(352 54% 57%)", "hsl(8 55% 58%)", "hsl(340 51% 58%)",
+        "hsl(359 49% 56%)", "hsl(346 47% 59%)"],
+    orange: ["hsl(20 55% 59%)", "hsl(28 52% 60%)", "hsl(13 51% 58%)",
+        "hsl(33 48% 57%)", "hsl(17 49% 61%)"],
+    yellow: ["hsl(42 51% 57%)", "hsl(48 48% 57%)", "hsl(35 51% 56%)",
+        "hsl(52 44% 58%)", "hsl(39 47% 61%)"],
+    green: ["hsl(145 45% 50%)", "hsl(163 43% 50%)", "hsl(128 42% 51%)",
+        "hsl(153 40% 55%)", "hsl(116 38% 54%)"],
+    cyan: ["hsl(188 48% 53%)", "hsl(177 45% 52%)", "hsl(196 47% 55%)",
+        "hsl(183 42% 57%)", "hsl(201 43% 58%)"],
+    blue: ["hsl(211 53% 57%)", "hsl(223 50% 58%)", "hsl(202 51% 55%)",
+        "hsl(231 45% 60%)", "hsl(207 46% 61%)"],
+    violet: ["hsl(258 45% 60%)", "hsl(274 44% 59%)", "hsl(245 42% 61%)",
+        "hsl(285 40% 58%)", "hsl(252 39% 64%)"],
+    pink: ["hsl(324 49% 60%)", "hsl(338 47% 60%)", "hsl(310 45% 59%)",
+        "hsl(345 44% 62%)", "hsl(316 40% 63%)"],
     neutralDark: ["hsl(214 25% 47%)", "hsl(232 23% 49%)", "hsl(258 21% 50%)", "hsl(194 25% 47%)"],
     neutralLight: ["hsl(216 28% 45%)", "hsl(244 26% 47%)", "hsl(192 28% 45%)", "hsl(268 24% 48%)"],
     neutral: ["hsl(216 27% 51%)", "hsl(244 25% 52%)", "hsl(192 27% 51%)", "hsl(272 23% 53%)"]
+};
+
+const tileFamilyVariety = {
+    red: ["red", "orange", "pink", "violet"],
+    orange: ["orange", "yellow", "red", "pink"],
+    yellow: ["yellow", "orange", "green", "cyan"],
+    green: ["green", "cyan", "yellow", "blue", "orange"],
+    cyan: ["cyan", "green", "blue", "yellow", "orange", "violet"],
+    blue: ["blue", "cyan", "violet", "green", "orange", "pink"],
+    violet: ["violet", "pink", "blue", "orange", "cyan"],
+    pink: ["pink", "red", "violet", "orange", "cyan"],
+    neutralDark: ["violet", "cyan", "orange", "green", "blue", "pink"],
+    neutralLight: ["blue", "violet", "green", "orange", "cyan", "pink"],
+    neutral: ["blue", "violet", "cyan", "orange", "green", "pink"]
 };
 
 function getHostAppearance(pageUrl) {
@@ -61,7 +83,8 @@ function getHostAppearance(pageUrl) {
         return {
             color: "#b8c2d4",
             neutral: true,
-            tone: "dark"
+            tone: "dark",
+            lockedFamily: false
         };
     }
     for (const [domain, color] of brandTileColors) {
@@ -69,7 +92,8 @@ function getHostAppearance(pageUrl) {
             return {
                 color: color,
                 neutral: false,
-                tone: "color"
+                tone: "color",
+                lockedFamily: true
             };
         }
     }
@@ -328,19 +352,18 @@ function getTextHash(text) {
 }
 
 function getTileColor(appearance, pageUrl, bookmarkId) {
-    let family = appearance.neutral ? "neutral" : getColorFamily(appearance.color);
-    if (family === "neutral") {
-        family = appearance.tone === "dark" ? "neutralDark" : appearance.tone === "light" ? "neutralLight" : "neutral";
+    let detectedFamily = appearance.neutral ? "neutral" : getColorFamily(appearance.color);
+    if (detectedFamily === "neutral") {
+        detectedFamily = appearance.tone === "dark" ? "neutralDark" :
+            appearance.tone === "light" ? "neutralLight" : "neutral";
     }
-    const palette = tileColorFamilies[family];
-    const position = layout.find(function(item) {
-        return item.id === bookmarkId;
-    }) || {
-        x: 0,
-        y: 0
-    };
     const host = new URL(pageUrl).hostname.toLowerCase();
-    const index = (getTextHash(host) + position.x + position.y * 2) % palette.length;
+    const stableKey = `${host}:${bookmarkId}`;
+    const familyChoices = appearance.lockedFamily ? [detectedFamily] :
+        tileFamilyVariety[detectedFamily] || [detectedFamily];
+    const family = familyChoices[getTextHash(`${stableKey}:family`) % familyChoices.length];
+    const palette = tileColorFamilies[family];
+    const index = getTextHash(`${stableKey}:shade`) % palette.length;
     let color = palette[index];
     if (!appearance.neutral) {
         const [, , iconLightness] = getCssColorHsl(appearance.color);

@@ -227,6 +227,14 @@ const evaluated = await call("Runtime.evaluate", {
                     shading.backgroundImage === "none";
             });
         })(),
+        bookmarkColorVariety: (() => {
+            const tiles = [...document.querySelectorAll(".bookmark-grid .tile:not(.folder-tile)")];
+            const hueGroups = new Set(tiles.map(tile => {
+                const [hue] = getCssColorHsl(getComputedStyle(tile).backgroundColor);
+                return Math.round(hue / 30);
+            }));
+            return tiles.length > 0 && hueGroups.size >= Math.min(3, tiles.length);
+        })(),
         faviconSizing: (() => {
             const icons = [...document.querySelectorAll(".bookmark-grid .tile:not(.folder-tile) .favicon-box img")];
             return icons.length > 0 && icons.every(icon => {
@@ -1299,7 +1307,9 @@ socket.close();
 
 const valid = state?.title === "Orbitella" && state.scene && state.spaceBackground &&
     state.permanentCosmicScene && state.layoutStability?.ok && state.compactBookmarkCounts?.ok &&
-    state.bookmarkGrid && state.clockGlass && state.clockGlassEffect && state.bookmarkCartoonStyle && state.faviconSizing && state.faviconContrast && state.bookmarkCentering && state.bookmarkTitleWrapping &&
+    state.bookmarkGrid && state.clockGlass && state.clockGlassEffect && state.bookmarkCartoonStyle &&
+    state.bookmarkColorVariety && state.faviconSizing && state.faviconContrast &&
+    state.bookmarkCentering && state.bookmarkTitleWrapping &&
     state.bookmarkOrbitLift && state.accessibility?.ok && state.weatherState?.ok &&
     state.settings?.ok && state.planets === 8 &&
     state.earthMoons === 1 && state.moonTexture && state.otherMoons === 0 &&

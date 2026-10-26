@@ -74,6 +74,7 @@ const baseStyles = read(path.join("styles", "_base.scss"));
 const sceneStyles = read(path.join("styles", "_scene.scss"));
 const heroStyles = read(path.join("styles", "_hero.scss"));
 const bookmarkStyles = read(path.join("styles", "_bookmarks.scss"));
+const dialogStyles = read(path.join("styles", "_dialogs.scss"));
 const settingsStyles = read(path.join("styles", "_settings.scss"));
 const overlayStyles = read(path.join("styles", "_overlays.scss"));
 const responsiveStyles = read(path.join("styles", "_responsive.scss"));
@@ -376,8 +377,26 @@ assert(bookmarkStyles.includes("linear-gradient(148deg") &&
     dashboardHtml.includes('operator="dilate" radius="1"') &&
     dashboardHtml.includes('flood-color="#fff"'),
 "_bookmarks.scss: матовый мультяшный материал плиток настроен неверно");
+assert(dialogStyles.includes("grid-auto-rows: calc(var(--tile-height) + var(--folder-title-room))") &&
+    dialogStyles.includes("--tile-width: 54px") &&
+    dialogStyles.includes("--tile-width: 63px") &&
+    dialogStyles.includes("width: var(--icon-box-size)") &&
+    dialogStyles.includes("width: calc(var(--icon-size) * var(--favicon-visual-scale, 1))") &&
+    dialogStyles.includes("top: calc(100% + 3px)") &&
+    dialogStyles.includes("&--single-word") &&
+    dialogStyles.includes("&--multi-word") &&
+    dialogStyles.includes("overflow: visible") &&
+    compiledStyles.includes("grid-auto-rows: calc(var(--tile-height) + var(--folder-title-room))") &&
+    compiledStyles.includes("html body[data-tile-size=small] .folder-grid") &&
+    compiledStyles.includes("html body .folder-grid .tile .tile-title--multi-word"),
+"Папки: закладки внутри папки не совпадают по размерам и подписям с дашбордом");
 assert(tileColorsScript.includes("const softSaturation = Math.min(.57, Math.max(.40") &&
     tileColorsScript.includes("const softLightness = Math.min(.64, Math.max(.46") &&
+    tileColorsScript.includes("const tileFamilyVariety = {") &&
+    tileColorsScript.includes('blue: ["blue", "cyan", "violet", "green", "orange", "pink"]') &&
+    tileColorsScript.includes('const stableKey = `${host}:${bookmarkId}`') &&
+    tileColorsScript.includes('getTextHash(`${stableKey}:family`)') &&
+    tileColorsScript.includes('getTextHash(`${stableKey}:shade`)') &&
     tileColorsScript.includes("const FAVICON_SPHERE_SCALE = .94") &&
     tileColorsScript.includes("Math.abs(iconLightness - tileLightness) < .18") &&
     tileColorsScript.includes("faviconAppearanceV7") &&
@@ -427,11 +446,16 @@ assert((dashboardHtml.match(/class="folder-color-dot"/g) || []).length === 3 &&
 "Папки: выбор одного из трёх цветов или его сохранение настроены неверно");
 assert(bookmarkUiScript.includes("const BOOKMARK_ORBIT_LIFT = 37") &&
     bookmarkUiScript.includes("const SMALL_BOOKMARK_ORBIT_LIFT = 18") &&
-    bookmarkUiScript.includes("SMALL_BOOKMARK_ORBIT_LIFT + 5") &&
-    bookmarkUiScript.includes('settings.showBookmarkTitles ? BOOKMARK_ORBIT_LIFT - 5 : BOOKMARK_ORBIT_LIFT - 20') &&
+    bookmarkUiScript.includes("const LARGE_COMPACT_ARC_DROP = 38") &&
+    bookmarkUiScript.includes("SMALL_BOOKMARK_ORBIT_LIFT + 20") &&
+    bookmarkUiScript.includes('settings.showBookmarkTitles ? BOOKMARK_ORBIT_LIFT - 12 : BOOKMARK_ORBIT_LIFT - 20') &&
+    bookmarkUiScript.includes("return LARGE_COMPACT_ARC_DROP") &&
     bookmarkUiScript.includes("gridRect.top - orbitLift"),
 "bookmarks-ui.js: орбиты закладок не подняты над солнцем");
 assert(bookmarkUiScript.includes('tile.setAttribute("draggable", "true")') &&
+    bookmarkUiScript.includes("const FOLDER_DROP_EDGE_ZONE = .06") &&
+    bookmarkUiScript.includes("const FOLDER_DROP_STICKY_EDGE_ZONE = .02") &&
+    bookmarkUiScript.includes("const FOLDER_DROP_EDGE_RELEASE_ZONE = .1") &&
     bookmarkUiScript.includes("function finishDragSession()") &&
     /function finishDragSession\(\)[\s\S]*?resetDragPreview\(\);\s*schedulePlanetOrbitAlignment\(\);/.test(bookmarkUiScript) &&
     /function alignPlanetOrbitsToBookmarks\(\)[\s\S]*?if \(draggingId\) return;/.test(bookmarkUiScript) &&
@@ -627,7 +651,9 @@ const redHsl = tileColorsContext.rgbToHsl(255, 0, 0);
 assert(redHsl[0] === 0 && redHsl[1] === 1 && redHsl[2] === .5 &&
     tileColorsContext.getTextHash("abc") === 96354 &&
     tileColorsContext.getHostAppearance("https://www.youtube.com/watch?v=1")?.color === "#c72d3a" &&
+    tileColorsContext.getHostAppearance("https://www.youtube.com/watch?v=1")?.lockedFamily === true &&
     tileColorsContext.getHostAppearance("https://chatgpt.com/")?.tone === "dark" &&
+    tileColorsContext.getHostAppearance("https://chatgpt.com/")?.lockedFamily === false &&
     tileColorsContext.getFaviconVisualScale({}, "https://mega.nz/") === .846,
 "tile-colors.js: преобразование цветов, стабильный хеш или известные палитры изменились");
 

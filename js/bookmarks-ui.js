@@ -223,15 +223,25 @@ function showInsertionPreview(containerId, targetId, afterTarget) {
         insertionSlot: plan.insertionSlot };
 }
 
+const FOLDER_DROP_EDGE_ZONE = .06;
+const FOLDER_DROP_STICKY_EDGE_ZONE = .02;
+const FOLDER_DROP_EDGE_RELEASE_ZONE = .1;
+
 function getStableDropAction(containerId, targetId, isFolder, horizontalPosition) {
     const sameTarget = dragPreviewIntent?.containerId === containerId && dragPreviewIntent?.targetId === targetId;
     const previousAction = sameTarget ? dragPreviewIntent.action : null;
     if (isFolder) {
-        if (previousAction === "inside" && horizontalPosition >= .14 && horizontalPosition <= .86) return "inside";
-        if (previousAction === "before" && horizontalPosition < .22) return "before";
-        if (previousAction === "after" && horizontalPosition > .78) return "after";
-        if (horizontalPosition < .18) return "before";
-        if (horizontalPosition > .82) return "after";
+        if (previousAction === "inside" &&
+            horizontalPosition >= FOLDER_DROP_STICKY_EDGE_ZONE &&
+            horizontalPosition <= 1 - FOLDER_DROP_STICKY_EDGE_ZONE) return "inside";
+        if (previousAction === "before" && horizontalPosition < FOLDER_DROP_EDGE_RELEASE_ZONE) {
+            return "before";
+        }
+        if (previousAction === "after" && horizontalPosition > 1 - FOLDER_DROP_EDGE_RELEASE_ZONE) {
+            return "after";
+        }
+        if (horizontalPosition < FOLDER_DROP_EDGE_ZONE) return "before";
+        if (horizontalPosition > 1 - FOLDER_DROP_EDGE_ZONE) return "after";
         return "inside";
     }
     if (previousAction === "before" && horizontalPosition < .58) return "before";
@@ -254,16 +264,22 @@ function setDragPreviewAction(containerId, targetId, action) {
 const bookmarkGrid = document.querySelector(".bookmark-grid");
 const BOOKMARK_ORBIT_LIFT = 37;
 const SMALL_BOOKMARK_ORBIT_LIFT = 18;
+const LARGE_COMPACT_ARC_DROP = 38;
 
 function getBookmarkOrbitLift() {
     if (settings.tileSize === "extra-small") {
         return settings.showBookmarkTitles ? SMALL_BOOKMARK_ORBIT_LIFT :
-            SMALL_BOOKMARK_ORBIT_LIFT + 5;
+            SMALL_BOOKMARK_ORBIT_LIFT + 20;
     }
     if (settings.tileSize === "small") {
-        return settings.showBookmarkTitles ? BOOKMARK_ORBIT_LIFT - 5 : BOOKMARK_ORBIT_LIFT - 20;
+        return settings.showBookmarkTitles ? BOOKMARK_ORBIT_LIFT - 12 : BOOKMARK_ORBIT_LIFT - 20;
     }
     return BOOKMARK_ORBIT_LIFT;
+}
+
+function getBookmarkArcVerticalOffset(arc) {
+    if (settings.tileSize !== "small" || settings.showBookmarkTitles) return 0;
+    return LARGE_COMPACT_ARC_DROP;
 }
 const PLANET_ORBIT_BOOKMARK_GAP = 20;
 
@@ -519,19 +535,20 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
     for (let arc = 0; arc < arcCount; arc += 1) {
         const capacity = getDashboardArcCapacity(arc);
         const halfSlotWidth = getDashboardArcReach(arc);
+        const verticalOffsetY = getBookmarkArcVerticalOffset(arc);
         const radiusX = Math.max(orbitGeometry.bookmarkBaseRadius + orbitStep * arc,
             previousRadius ? previousRadius + orbitStep : 0);
         const radiusY = radiusX * orbitGeometry.perspective;
         const halfSpan = Math.asin(clampOrbitalValue(halfSlotWidth / radiusX, -.995, .995));
-        const arcGeometry = { arc, capacity, radiusX, radiusY, halfSpan };
+        const arcGeometry = { arc, capacity, radiusX, radiusY, halfSpan, verticalOffsetY };
         previousRadius = radiusX;
         arcs.push(arcGeometry);
         const angles = getEvenlySpacedEllipseAngles(radiusX, radiusY, halfSpan, capacity,
             tileDiameter + tileMetrics.gap);
-        const points = angles.map(angle => ({
-            angle,
-            ...orbitalSystem.getPoint(radiusX, angle, orbitGeometry, centerX, centerY)
-        }));
+        const points = angles.map(angle => {
+            const point = orbitalSystem.getPoint(radiusX, angle, orbitGeometry, centerX, centerY);
+            return { angle, ...point, y: point.y + verticalOffsetY };
+        });
         points.forEach((point, slot) => {
             const neighbors = [points[slot - 1], points[slot + 1]].filter(Boolean);
             const horizontalDistances = neighbors.map(neighbor =>
@@ -554,7 +571,8 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
                 collisionSafeWidth));
             slotMap.set(getDashboardSlotKey(arc, slot), {
                 arc, slot, angle: point.angle, x: point.x, y: point.y, tangent: point.tangent,
-                spacing: labelSpacing, titleOffsetX: 0, scale: 1, opacity: 1
+                spacing: labelSpacing, titleOffsetX: 0, verticalOffsetY,
+                scale: 1, opacity: 1
             });
         });
     }
@@ -662,7 +680,7 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
     const visiblePositions = occupiedPositions.length ? occupiedPositions : positions;
     const visibleTop = Math.min(...visiblePositions.map(point => point.y - tileDiameter / 2));
     const activeBottom = Math.max(...activePositions.map(point =>
-        point.y + tileDiameter / 2 + labelRoom));
+        point.y - point.verticalOffsetY + tileDiameter / 2 + labelRoom));
     const viewportTop = -gridRect.top + padding;
     const viewportBottom = window.innerHeight - gridRect.top - bottomReserve - padding - orbitLift;
     let verticalShift = viewportBottom - activeBottom;
@@ -765,7 +783,7 @@ function anchorCarouselToBottom(geometry) {
         .filter(Boolean);
     if (!occupiedPoints.length) return;
     const visibleBottom = Math.max(...occupiedPoints.map(point =>
-        gridBounds.top + point.y + tileHalf + labelRoom));
+        gridBounds.top + point.y - point.verticalOffsetY + tileHalf + labelRoom));
     const main = bookmarkGrid.closest("main");
     const bottomReserve = Math.max(0, parseFloat(getComputedStyle(main).paddingBottom) || 0);
     let verticalShift = window.innerHeight - bottomReserve - 12 - getBookmarkOrbitLift() -
@@ -905,7 +923,8 @@ function updateCarouselTransforms() {
         guide.style.width = `${arc.radiusX * 2}px`;
         guide.style.height = `${arc.radiusY * 2}px`;
         guide.style.left = `${(geometry.centerX + carouselState.panX - arc.radiusX).toFixed(2)}px`;
-        guide.style.top = `${(geometry.centerY + carouselState.panY - arc.radiusY).toFixed(2)}px`;
+        guide.style.top = `${(geometry.centerY + carouselState.panY - arc.radiusY +
+            arc.verticalOffsetY).toFixed(2)}px`;
         guide.style.transform = `rotate(${geometry.tilt}rad)`;
     });
     if (dragPreviewPlaceholder && dragPreviewIntent?.containerId === "dashboard" &&

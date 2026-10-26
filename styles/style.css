@@ -1600,80 +1600,121 @@ html body .folder-dialog-content header .dialog-close {
   grid-row: 1;
 }
 html body .folder-grid {
+  --folder-slot-width: 94px;
+  --folder-title-room: 32px;
+  --tile-width: 76px;
+  --tile-height: 76px;
+  --tile-padding: 5px;
+  --icon-box-size: 46px;
+  --icon-size: 44px;
+  --bookmark-title-max-width: 90px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, var(--tile-width));
-  grid-auto-rows: var(--tile-height);
-  justify-content: start;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(var(--folder-slot-width), 1fr));
+  grid-auto-rows: calc(var(--tile-height) + var(--folder-title-room));
+  align-items: start;
+  gap: 10px 4px;
   max-height: min(418px, 100dvh - 150px);
   padding: 2px;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  --icon-size: 34px;
 }
 html body .folder-grid .tile {
   --tile-text: #dce3ed;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  justify-self: center;
+  gap: 0;
   width: var(--tile-width);
   height: var(--tile-height);
   padding: var(--tile-padding);
-  border-radius: 50%;
+  overflow: visible;
   mask-image: none;
   -webkit-mask-image: none;
 }
 html body .folder-grid .tile.drag-over {
-  outline-offset: -3px;
-  background-color: rgba(18, 27, 42, 0.95);
-  border-color: rgba(204, 220, 240, 0.32);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background-color: var(--tile-color);
+  border-color: color-mix(in srgb, var(--tile-color-light) 18%, transparent);
 }
 html body .folder-grid .tile .favicon-box {
-  width: 40px;
-  height: 40px;
+  width: var(--icon-box-size);
+  height: var(--icon-box-size);
 }
 html body .folder-grid .tile .favicon-box img {
-  width: calc(34px * var(--favicon-visual-scale, 1));
-  height: calc(34px * var(--favicon-visual-scale, 1));
+  width: calc(var(--icon-size) * var(--favicon-visual-scale, 1));
+  height: calc(var(--icon-size) * var(--favicon-visual-scale, 1));
 }
 html body .folder-grid .tile .folder-mini-icon svg {
-  width: 34px;
-  height: 34px;
-  fill: color-mix(in srgb, var(--tile-color-light) 68%, #d9dee7);
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 html body .folder-grid .tile .tile-title {
-  width: 100%;
-  max-width: 100%;
-  line-height: 1.2;
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  width: min(var(--folder-slot-width), var(--bookmark-title-max-width));
+  max-width: min(var(--folder-slot-width), var(--bookmark-title-max-width));
+  transform: translateX(-50%);
+  font-size: 12px;
+  line-height: 1.05;
+  letter-spacing: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+  color: #eeeaf5;
+  opacity: 1;
   text-align: center;
-  text-shadow: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: subpixel-antialiased;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+  pointer-events: none;
 }
-html body[data-tile-size=extra-small] .folder-grid .tile {
-  gap: 2px;
+html body .folder-grid .tile .tile-title--single-word {
+  display: block;
+  white-space: nowrap;
 }
-html body[data-tile-size=extra-small] .folder-grid .tile .favicon-box {
-  width: 30px;
-  height: 30px;
+html body .folder-grid .tile .tile-title--multi-word {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
-html body[data-tile-size=extra-small] .folder-grid .tile .favicon-box img {
-  width: calc(28px * var(--favicon-visual-scale, 1));
-  height: calc(28px * var(--favicon-visual-scale, 1));
+html body[data-tile-size=extra-small] .folder-grid {
+  --folder-slot-width: 70px;
+  --folder-title-room: 29px;
+  --tile-width: 54px;
+  --tile-height: 54px;
+  --tile-padding: 3px;
+  --icon-box-size: 32px;
+  --icon-size: 30px;
+  --bookmark-title-max-width: 70px;
 }
-html body[data-tile-size=extra-small] .folder-grid .tile .folder-mini-icon svg {
-  width: 28px;
-  height: 28px;
+html body[data-tile-size=small] .folder-grid {
+  --folder-slot-width: 82px;
+  --folder-title-room: 32px;
+  --tile-width: 63px;
+  --tile-height: 63px;
+  --tile-padding: 4px;
+  --icon-box-size: 37.6px;
+  --icon-size: 35.5px;
+  --bookmark-title-max-width: 90px;
 }
-html body[data-tile-size=extra-small] .folder-grid .tile .tile-title {
-  line-height: 1.1;
+html body[data-tile-size=small] .folder-grid .tile .tile-title {
+  font-size: 13px;
+  line-height: 1.08;
+}
+html body[data-bookmark-titles-visible=false] .folder-grid {
+  --folder-title-room: 0px;
 }
 html body .folder-add-tile {
   display: grid;
   place-items: center;
   width: var(--tile-width);
   height: var(--tile-height);
+  justify-self: center;
   padding: 0;
   color: rgba(220, 227, 237, 0.7);
   background: rgba(10, 18, 31, 0.11);
