@@ -63,6 +63,14 @@ function call(method, params = {}) {
 const browserMocks = String.raw`
 (() => {
     const stores = { local: Object.create(null), sync: Object.create(null) };
+    const storageChanged = (() => {
+        const listeners = new Set();
+        return {
+            addListener(listener) { listeners.add(listener); },
+            removeListener(listener) { listeners.delete(listener); },
+            emit(changes, area) { listeners.forEach(listener => listener(changes, area)); }
+        };
+    })();
     const storageArea = area => ({
         async get(keys) {
             if (keys === null) return { ...stores[area] };
@@ -70,30 +78,190 @@ const browserMocks = String.raw`
             return Object.fromEntries(list.filter(key => key in stores[area])
                 .map(key => [key, stores[area][key]]));
         },
-        async set(values) { Object.assign(stores[area], values); },
+        async set(values) {
+            const changes = Object.fromEntries(Object.entries(values).map(([key, value]) =>
+                [key, { oldValue: stores[area][key], newValue: value }]));
+            Object.assign(stores[area], values);
+            queueMicrotask(() => storageChanged.emit(changes, area));
+        },
         async remove(keys) {
-            (Array.isArray(keys) ? keys : [keys]).forEach(key => delete stores[area][key]);
+            const changes = {};
+            (Array.isArray(keys) ? keys : [keys]).forEach(key => {
+                if (!(key in stores[area])) return;
+                changes[key] = { oldValue: stores[area][key] };
+                delete stores[area][key];
+            });
+            if (Object.keys(changes).length) {
+                queueMicrotask(() => storageChanged.emit(changes, area));
+            }
         }
     });
+    const createEvent = () => {
+        const listeners = new Set();
+        return {
+            addListener(listener) { listeners.add(listener); },
+            removeListener(listener) { listeners.delete(listener); },
+            emit(...args) { listeners.forEach(listener => listener(...args)); }
+        };
+    };
+    const bookmarkEvents = {
+        onCreated: createEvent(),
+        onRemoved: createEvent(),
+        onChanged: createEvent(),
+        onMoved: createEvent(),
+        onChildrenReordered: createEvent(),
+        onImportEnded: createEvent()
+    };
+    const clone = value => JSON.parse(JSON.stringify(value));
+    const initialBookmarkTree = [{ id: "0", title: "", children: [{
+        id: "1", parentId: "0", index: 0, title: "Bookmarks Bar", children: [
+            { id: "11", parentId: "1", index: 0, title: "Pinterest",
+                url: "https://example.com/pinterest" },
+            { id: "12", parentId: "1", index: 1, title: "AliExpress",
+                url: "https://example.com/aliexpress" },
+            { id: "13", parentId: "1", index: 2, title: "Microsoft Azure",
+                url: "https://example.com/azure" },
+            { id: "14", parentId: "1", index: 3, title: "Записи уроков",
+                url: "https://example.com/lessons" },
+            { id: "15", parentId: "1", index: 4, title: "HCP Terraform",
+                url: "https://example.com/terraform" },
+            { id: "16", parentId: "1", index: 5, title: "ExtraordinarilyLongBookmark",
+                url: "https://example.com/long" }
+        ]
+    }] }];
+    let bookmarkTree = clone(initialBookmarkTree);
+    let nextBookmarkId = 100;
+    const findBookmarkNode = id => {
+        const visit = nodes => {
+            for (const node of nodes) {
+                if (String(node.id) === String(id)) return node;
+                const nested = visit(node.children || []);
+                if (nested) return nested;
+            }
+            return null;
+        };
+        return visit(bookmarkTree);
+    };
+    const reindexChildren = parent => (parent.children || []).forEach((child, index) => {
+        child.parentId = String(parent.id);
+        child.index = index;
+        if (child.children) reindexChildren(child);
+    });
+    const containsBookmarkNode = (folder, id) => (folder.children || []).some(child =>
+        String(child.id) === String(id) || containsBookmarkNode(child, id));
+    const removeBookmarkNode = id => {
+        const node = findBookmarkNode(id);
+        const parent = node && findBookmarkNode(node.parentId);
+        if (!node || !parent) return null;
+        const index = parent.children.findIndex(child => child.id === node.id);
+        parent.children.splice(index, 1);
+        reindexChildren(parent);
+        return { node, parent, index };
+    };
+    const bookmarkApi = {
+        async getTree() { return clone(bookmarkTree); },
+        async create(options) {
+            const parent = findBookmarkNode(options.parentId);
+            if (!parent?.children) throw new Error("Parent folder was not found");
+            const node = {
+                id: String(nextBookmarkId++),
+                parentId: String(parent.id),
+                index: 0,
+                title: String(options.title || "")
+            };
+            if (options.url !== undefined) node.url = String(options.url);
+            else node.children = [];
+            const index = Number.isInteger(options.index) ?
+                Math.max(0, Math.min(parent.children.length, options.index)) : parent.children.length;
+            parent.children.splice(index, 0, node);
+            reindexChildren(parent);
+            queueMicrotask(() => bookmarkEvents.onCreated.emit(node.id, clone(node)));
+            return clone(node);
+        },
+        async update(id, changes) {
+            const node = findBookmarkNode(id);
+            if (!node) throw new Error("Bookmark was not found");
+            if (changes.title !== undefined) node.title = String(changes.title);
+            if (changes.url !== undefined) {
+                if (node.children) throw new Error("A folder cannot have a URL");
+                node.url = String(changes.url);
+            }
+            queueMicrotask(() => bookmarkEvents.onChanged.emit(String(id), clone(changes)));
+            return clone(node);
+        },
+        async move(id, destination) {
+            const node = findBookmarkNode(id);
+            const nextParent = findBookmarkNode(destination.parentId ?? node?.parentId);
+            if (!node || !nextParent?.children) throw new Error("Move destination was not found");
+            if (node.children && (node.id === nextParent.id || containsBookmarkNode(node, nextParent.id))) {
+                throw new Error("A folder cannot be moved into itself");
+            }
+            const previous = removeBookmarkNode(id);
+            if (!previous) throw new Error("Bookmark parent was not found");
+            const index = Number.isInteger(destination.index) ?
+                Math.max(0, Math.min(nextParent.children.length, destination.index)) :
+                nextParent.children.length;
+            nextParent.children.splice(index, 0, node);
+            reindexChildren(nextParent);
+            queueMicrotask(() => {
+                bookmarkEvents.onMoved.emit(String(id), {
+                    parentId: String(nextParent.id),
+                    index: node.index,
+                    oldParentId: String(previous.parent.id),
+                    oldIndex: previous.index
+                });
+                bookmarkEvents.onChildrenReordered.emit(String(previous.parent.id), {
+                    childIds: previous.parent.children.map(child => child.id)
+                });
+                if (previous.parent.id !== nextParent.id) {
+                    bookmarkEvents.onChildrenReordered.emit(String(nextParent.id), {
+                        childIds: nextParent.children.map(child => child.id)
+                    });
+                }
+            });
+            return clone(node);
+        },
+        async remove(id) {
+            const node = findBookmarkNode(id);
+            if (!node || node.children?.length) throw new Error("Bookmark cannot be removed");
+            const removed = removeBookmarkNode(id);
+            queueMicrotask(() => bookmarkEvents.onRemoved.emit(String(id), {
+                parentId: removed.parent.id,
+                index: removed.index,
+                node: clone(removed.node)
+            }));
+        },
+        async removeTree(id) {
+            const node = findBookmarkNode(id);
+            if (!node?.children) throw new Error("Folder was not found");
+            const removed = removeBookmarkNode(id);
+            queueMicrotask(() => bookmarkEvents.onRemoved.emit(String(id), {
+                parentId: removed.parent.id,
+                index: removed.index,
+                node: clone(removed.node)
+            }));
+        },
+        ...bookmarkEvents
+    };
+    globalThis.__bookmarkMock = {
+        initialTree: clone(initialBookmarkTree),
+        restore() {
+            bookmarkTree = clone(initialBookmarkTree);
+            nextBookmarkId = 100;
+        },
+        find: findBookmarkNode,
+        events: bookmarkEvents,
+        stores
+    };
     const event = { addListener() {}, removeListener() {} };
     globalThis.chrome = {
         i18n: { getUILanguage: () => "ru-RU" },
         runtime: { getURL: value => String(value).startsWith("/_favicon/")
             ? new URL("assets/planets/earth.webp", location.href).href
             : new URL(String(value).replace(/^\/+/, ""), location.href).href },
-        storage: { local: storageArea("local"), sync: storageArea("sync"), onChanged: event },
-        bookmarks: {
-            getTree: async () => [{ children: [{ id: "1", children: [
-                { id: "11", title: "Pinterest", url: "https://example.com/pinterest" },
-                { id: "12", title: "AliExpress", url: "https://example.com/aliexpress" },
-                { id: "13", title: "Microsoft Azure", url: "https://example.com/azure" },
-                { id: "14", title: "Записи уроков", url: "https://example.com/lessons" },
-                { id: "15", title: "HCP Terraform", url: "https://example.com/terraform" },
-                { id: "16", title: "ExtraordinarilyLongBookmark", url: "https://example.com/long" }
-            ] }] }],
-            onMoved: event, onChildrenReordered: event, onImportEnded: event,
-            onCreated: event, onRemoved: event, onChanged: event
-        },
+        storage: { local: storageArea("local"), sync: storageArea("sync"),
+            onChanged: storageChanged },
+        bookmarks: bookmarkApi,
         history: { search: async () => [] },
         search: { query: async () => undefined },
         identity: { getProfileUserInfo: async () => ({}), onSignInChanged: event },
@@ -332,6 +500,23 @@ const evaluated = await call("Runtime.evaluate", {
                 waitsBeforeSwitch && switchesAfterDelay;
             finishDragSession();
             return result;
+        })(),
+        dragClickGuard: (() => {
+            const tile = document.querySelector(".bookmark-grid .tile[data-id]");
+            if (!tile) return false;
+            const transfer = new DataTransfer();
+            tile.dispatchEvent(new DragEvent("dragstart", {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer: transfer
+            }));
+            const blockedAtStart = blockClickUntil > Date.now();
+            tile.dispatchEvent(new DragEvent("dragend", {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer: transfer
+            }));
+            return blockedAtStart && blockClickUntil > Date.now() && !draggingId;
         })(),
         accessibility: (() => {
             const dialogs = [...document.querySelectorAll("dialog")];
@@ -624,6 +809,132 @@ const searchInteractionResult = await call("Runtime.evaluate", {
     returnByValue: true
 });
 state.searchInteraction = searchInteractionResult.result.value;
+const bookmarkFlowResult = await call("Runtime.evaluate", {
+    expression: `new Promise(async resolve => {
+        const settle = (delay = 360) => new Promise(done => requestAnimationFrame(() =>
+            requestAnimationFrame(() => setTimeout(done, delay))));
+        const originalLayout = layout.map(item => ({ ...item }));
+        const originalSettings = { ...settings };
+        const originalUpdatedAt = dashboardStateUpdatedAt;
+        const checks = {};
+        try {
+            const folder = await chrome.bookmarks.create({
+                parentId: "1",
+                title: "Orbitella Audit Folder"
+            });
+            const first = await chrome.bookmarks.create({
+                parentId: folder.id,
+                title: "Audit First",
+                url: "https://example.com/audit-first"
+            });
+            const second = await chrome.bookmarks.create({
+                parentId: folder.id,
+                title: "Audit Second",
+                url: "https://example.com/audit-second"
+            });
+            const nested = await chrome.bookmarks.create({
+                parentId: folder.id,
+                title: "Audit Nested"
+            });
+            await settle();
+            checks.created = Boolean(findBookmark(folder.id)?.children &&
+                findBookmark(first.id)?.parentId === folder.id &&
+                findBookmark(second.id)?.parentId === folder.id &&
+                new Set(bookmarks.map(item => item.id)).size === bookmarks.length);
+
+            await chrome.bookmarks.update(first.id, {
+                title: "Audit First Renamed",
+                url: "https://example.com/audit-first-renamed"
+            });
+            await settle();
+            checks.renamed = findBookmark(first.id)?.title === "Audit First Renamed" &&
+                findBookmark(first.id)?.url.endsWith("audit-first-renamed");
+
+            checks.reorderedInFolder = await moveItemWithinFolder(second.id, folder.id,
+                first.id, false);
+            const reorderedFolder = findBookmark(folder.id);
+            checks.reorderedInFolder = checks.reorderedInFolder &&
+                reorderedFolder.children.findIndex(item => item.id === second.id) <
+                reorderedFolder.children.findIndex(item => item.id === first.id);
+
+            checks.movedIntoFolder = await moveItemIntoFolder("11", folder.id);
+            checks.movedIntoFolder = checks.movedIntoFolder &&
+                findBookmark("11")?.parentId === folder.id &&
+                !layout.some(item => item.id === "11");
+
+            const treeBeforeInvalidMove = JSON.stringify(await chrome.bookmarks.getTree());
+            const invalidMove = await moveItemIntoFolder(folder.id, nested.id);
+            checks.invalidNestingBlocked = invalidMove === false &&
+                JSON.stringify(await chrome.bookmarks.getTree()) === treeBeforeInvalidMove;
+
+            checks.movedBackToDashboard = await moveItemToDashboard("11", "12",
+                undefined, undefined, false);
+            const movedBackOrder = [...layout].sort(compareDashboardLayoutItems)
+                .map(item => item.id);
+            checks.movedBackToDashboard = checks.movedBackToDashboard &&
+                findBookmark("11")?.parentId === "1" &&
+                movedBackOrder.indexOf("11") === movedBackOrder.indexOf("12") - 1;
+
+            await moveBookmark("16", "12", undefined, undefined, false);
+            const expectedOrder = [...layout].sort(compareDashboardLayoutItems)
+                .map(item => item.id);
+            const saved = await chrome.storage.local.get("dashboardLayout");
+            const savedOrder = decodeDashboardLayout(saved.dashboardLayout)
+                .sort(compareDashboardLayoutItems).map(item => item.id);
+            checks.dashboardOrderSaved = expectedOrder.join("|") === savedOrder.join("|");
+
+            folderPath = [folder.id];
+            renderFolderBookmarks();
+            await chrome.bookmarks.move(first.id, { parentId: folder.id, index: 0 });
+            await settle();
+            const renderedFolderOrder = [...folderGrid.querySelectorAll(":scope > .tile[data-id]")]
+                .map(tile => tile.dataset.id);
+            checks.externalReorderRendered = renderedFolderOrder[0] === first.id;
+
+            await chrome.bookmarks.remove(first.id);
+            await settle();
+            checks.removed = !findBookmark(first.id) &&
+                !folderGrid.querySelector('[data-id="' + first.id + '"]');
+
+            const synchronized = createDashboardStateSnapshot(true);
+            synchronized.dashboardSettings = {
+                ...synchronized.dashboardSettings,
+                showBookmarkTitles: !settings.showBookmarkTitles
+            };
+            synchronized.dashboardStateUpdatedAt = dashboardStateUpdatedAt + 1000;
+            await saveDashboardSyncState(synchronized);
+            await settle(520);
+            checks.syncApplied = settings.showBookmarkTitles ===
+                synchronized.dashboardSettings.showBookmarkTitles &&
+                document.body.dataset.bookmarkTitlesVisible === String(settings.showBookmarkTitles);
+        } catch (error) {
+            checks.unexpectedError = error?.stack || String(error);
+        } finally {
+            __bookmarkMock.restore();
+            await loadBookmarks();
+            settings = originalSettings;
+            dashboardStateUpdatedAt = Math.max(dashboardStateUpdatedAt, originalUpdatedAt) + 1;
+            layout = originalLayout.map(item => ({ ...item }));
+            updateBookmarkPositions();
+            folderPath = [];
+            if (folderDialog.open) folderDialog.close();
+            applyBookmarkTitlesVisibility();
+            renderBookmarks(false);
+            await saveDashboardSettings();
+            await settle();
+        }
+        checks.noDuplicates = new Set(bookmarks.map(item => item.id)).size === bookmarks.length;
+        checks.restored = bookmarks.length === 6 && layout.length === 6;
+        checks.ok = ["created", "renamed", "reorderedInFolder", "movedIntoFolder",
+            "invalidNestingBlocked", "movedBackToDashboard", "dashboardOrderSaved",
+            "externalReorderRendered", "removed", "syncApplied", "noDuplicates", "restored"]
+            .every(key => checks[key] === true) && !checks.unexpectedError;
+        resolve(checks);
+    })`,
+    awaitPromise: true,
+    returnByValue: true
+});
+state.bookmarkFlow = bookmarkFlowResult.result.value;
 const layoutStabilityResult = await call("Runtime.evaluate", {
     expression: `new Promise(async resolve => {
         const settle = (delay = 280) => new Promise(done => requestAnimationFrame(() =>
@@ -647,6 +958,18 @@ const layoutStabilityResult = await call("Runtime.evaluate", {
             select.dispatchEvent(new Event("change", { bubbles: true }));
             await settle(340);
         };
+        if (!document.getElementById("show-search").checked) {
+            await setCheckbox("show-search", true);
+        }
+        if (!document.getElementById("show-bookmarks").checked) {
+            await setCheckbox("show-bookmarks", true);
+        }
+        if (!document.getElementById("show-bookmark-titles").checked) {
+            await setCheckbox("show-bookmark-titles", true);
+        }
+        if (document.getElementById("tile-size-select").value !== "small") {
+            await setTileSize("small");
+        }
         const sun = document.querySelector(".orbital-sun");
         const hero = document.querySelector(".hero-info");
         const grid = document.querySelector(".bookmark-grid");
@@ -1144,10 +1467,13 @@ for (const viewport of [
     { width: 988, height: 392 },
     { width: 990, height: 768 },
     { width: 1024, height: 768 },
+    { width: 1024, height: 768, scale: 1.25 },
     { width: 1122, height: 544 },
     { width: 1366, height: 768 },
+    { width: 1366, height: 768, scale: 1.5 },
     { width: 1440, height: 900 },
     { width: 1920, height: 1080 },
+    { width: 1920, height: 1080, scale: 2 },
     { width: 2560, height: 1080 },
     { width: 2560, height: 1440 },
     { width: 3840, height: 2160 }
@@ -1155,7 +1481,7 @@ for (const viewport of [
     await call("Emulation.setDeviceMetricsOverride", {
         width: viewport.width,
         height: viewport.height,
-        deviceScaleFactor: 1,
+        deviceScaleFactor: viewport.scale || 1,
         mobile: false
     });
     await call("Page.reload", { ignoreCache: true });
@@ -1475,6 +1801,22 @@ for (const viewport of [
             await setSize("small");
             const largeModeSafe = modeIsSafe(titled, compact);
             const smallModeSafe = modeIsSafe(extraSmallTitled, extraSmallCompact);
+            const dragTargeting = (() => {
+                const ordered = [...layout].sort((first, second) => first.order - second.order);
+                const sourceId = ordered[0]?.id;
+                const targetId = ordered.at(-1)?.id;
+                if (!sourceId || !targetId || sourceId === targetId) return false;
+                draggingId = sourceId;
+                dragDashboardSnapshot = null;
+                const snapshot = getDashboardSnapshot();
+                const target = snapshot.items.find(item => item.id === targetId);
+                const intent = target && resolveDashboardDropIntent({
+                    clientX: target.rect.right - 1,
+                    clientY: (target.rect.top + target.rect.bottom) / 2
+                });
+                finishDragSession();
+                return intent?.targetId === targetId && intent.action === "after";
+            })();
             resolve({
                 titled,
                 compact,
@@ -1483,7 +1825,8 @@ for (const viewport of [
                 extraSmallCompact,
                 largeModeSafe,
                 smallModeSafe,
-                ok: largeModeSafe && smallModeSafe &&
+                dragTargeting,
+                ok: largeModeSafe && smallModeSafe && dragTargeting &&
                     titled.positions.every((item, index) =>
                         Math.abs(item.left - restored.positions[index].left) <= 1 &&
                         Math.abs(item.top - restored.positions[index].top) <= 1)
@@ -1540,10 +1883,11 @@ socket.close();
 
 const valid = state?.title === "Orbitella" && state.scene && state.spaceBackground &&
     state.permanentCosmicScene && state.layoutStability?.ok && state.compactBookmarkCounts?.ok &&
+    state.bookmarkFlow?.ok &&
     state.bookmarkGrid && state.clockGlass && state.clockGlassEffect && state.bookmarkCartoonStyle &&
     state.faviconSizing && state.faviconContrast &&
     state.bookmarkCentering && state.bookmarkTitleWrapping &&
-    state.bookmarkOrbitLift && state.dragInsertionStability &&
+    state.bookmarkOrbitLift && state.dragInsertionStability && state.dragClickGuard &&
     state.accessibility?.ok && state.weatherState?.ok &&
     state.settings?.ok && state.planets === 8 &&
     state.earthMoons === 1 && state.moonTexture && state.otherMoons === 0 &&
@@ -1597,6 +1941,7 @@ if (!valid || runtimeErrors.length) {
         }));
     console.error(JSON.stringify({
         core: {
+            bookmarkFlow: state?.bookmarkFlow,
             layoutStability: state?.layoutStability,
             compactBookmarkCounts: state?.compactBookmarkCounts ? {
                 ok: state.compactBookmarkCounts.ok,

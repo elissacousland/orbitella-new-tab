@@ -1394,6 +1394,7 @@ function createBookmarkTile(item, compact = false) {
         }
     });
     tile.addEventListener("dragstart", event => {
+        blockClickUntil = Date.now() + 300;
         hideBookmarkTooltip(true);
         hideBookmarkMenu();
         clearDragIndicators();
@@ -1427,6 +1428,7 @@ function createBookmarkTile(item, compact = false) {
         });
     }
     tile.addEventListener("dragend", () => {
+        blockClickUntil = Date.now() + 300;
         finishDragSession();
     });
     return tile;
