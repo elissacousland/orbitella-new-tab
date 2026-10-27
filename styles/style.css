@@ -93,7 +93,7 @@ html body :is(button, a, input, select):focus-visible {
 html body main {
   width: min(1600px, 100% - 48px);
   margin: 0 auto;
-  padding: 122px 0 0;
+  padding: 6vh 0 0;
 }
 html body .hero {
   display: flex;
@@ -107,8 +107,7 @@ html body .hero-info {
   flex-direction: column;
   align-items: center;
   width: min(700px, 100%);
-  margin-bottom: -30px;
-  transform: translateY(-54px);
+  margin-bottom: 1.5vh;
 }
 html body .clock-weather {
   order: 0;
@@ -446,12 +445,13 @@ html body .bookmarks {
 }
 html body .bookmark-grid {
   --orbit-tile-scale: 1;
+  --orbit-title-scale: 1;
   --orbit-slot-gap: var(--grid-gap);
   position: relative;
   width: 100%;
   min-height: 0;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   touch-action: none;
   cursor: default;
   overscroll-behavior: contain;
@@ -969,7 +969,7 @@ html body .bookmark-grid .tile .tile-title {
   width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px), var(--bookmark-title-max-width, 999px));
   max-width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px), var(--bookmark-title-max-width, 999px));
   transform: translateX(-50%);
-  font-size: 12px;
+  font-size: calc(12px * var(--orbit-title-scale));
   line-height: 1.05;
   letter-spacing: 0;
   overflow-wrap: normal;
@@ -996,7 +996,7 @@ html body .bookmark-grid .folder-tile {
   padding: var(--tile-padding);
 }
 html body[data-tile-size=small] .bookmark-grid .tile .tile-title {
-  font-size: 13px;
+  font-size: calc(13px * var(--orbit-title-scale));
   line-height: 1.08;
 }
 html body .bookmarks > p {
@@ -2360,7 +2360,7 @@ html body .item-type-options button:hover svg {
 }
 
 .space-scene__planets {
-  --planet-orbit-shift-y: -16px;
+  --planet-orbit-shift-y: -1.8vh;
   z-index: 3;
   overflow: visible;
   transform: translate3d(0, var(--planet-orbit-shift-y), 0);
@@ -3018,7 +3018,6 @@ html body .toast:not([hidden]) {
 @media (max-width: 600px) {
   html body main {
     width: calc(100% - 28px);
-    padding-top: 132px;
   }
   html body .account-toolbar {
     top: 16px;
@@ -3027,13 +3026,6 @@ html body .toast:not([hidden]) {
 }
 
 @media (max-height: 760px) {
-  html body main {
-    padding-top: clamp(64px, 10vh, 92px);
-  }
-  html body .hero-info {
-    margin-bottom: -12px;
-    transform: translateY(-28px);
-  }
   html body .clock-weather {
     min-height: 126px;
   }
@@ -3042,13 +3034,6 @@ html body .toast:not([hidden]) {
   }
 }
 @media (max-height: 620px) {
-  html body main {
-    padding-top: 48px;
-  }
-  html body .hero-info {
-    margin-bottom: -4px;
-    transform: translateY(-14px);
-  }
   html body .clock-weather {
     min-height: 112px;
   }
@@ -3059,8 +3044,8 @@ html body .toast:not([hidden]) {
 html body .bookmark-tooltip {
   position: fixed;
   z-index: 10020;
-  max-width: min(320px, 100vw - 16px);
-  padding: 6px 10px;
+  max-width: min(440px, 100vw - 20px);
+  padding: 7px 12px;
   overflow-wrap: anywhere;
   color: #f5f1fa;
   font-family: "Nunito", sans-serif;

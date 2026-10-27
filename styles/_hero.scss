@@ -6,7 +6,7 @@ html {
         main {
             width: min(1600px, calc(100% - 48px));
             margin: 0 auto;
-            padding: 122px 0 0;
+            padding: 6vh 0 0;
         }
 
         .hero {
@@ -22,8 +22,7 @@ html {
             flex-direction: column;
             align-items: center;
             width: min(700px, 100%);
-            margin-bottom: -30px;
-            transform: translateY(-54px);
+            margin-bottom: 1.5vh;
         }
 
         .clock-weather {

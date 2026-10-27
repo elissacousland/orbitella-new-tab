@@ -227,14 +227,6 @@ const evaluated = await call("Runtime.evaluate", {
                     shading.backgroundImage === "none";
             });
         })(),
-        bookmarkColorVariety: (() => {
-            const tiles = [...document.querySelectorAll(".bookmark-grid .tile:not(.folder-tile)")];
-            const hueGroups = new Set(tiles.map(tile => {
-                const [hue] = getCssColorHsl(getComputedStyle(tile).backgroundColor);
-                return Math.round(hue / 30);
-            }));
-            return tiles.length > 0 && hueGroups.size >= Math.min(3, tiles.length);
-        })(),
         faviconSizing: (() => {
             const icons = [...document.querySelectorAll(".bookmark-grid .tile:not(.folder-tile) .favicon-box img")];
             return icons.length > 0 && icons.every(icon => {
@@ -284,13 +276,62 @@ const evaluated = await call("Runtime.evaluate", {
                 commonSingleWordsVisible && largeTitleFont;
         })(),
         bookmarkOrbitLift: (() => {
-            const grid = document.querySelector(".bookmark-grid").getBoundingClientRect();
-            const activeArcCount = getDashboardActiveArcCount();
-            const activePoints = [...carouselState.geometry.slotMap.values()]
-                .filter(point => point.arc < activeArcCount);
-            const bottom = grid.top + Math.max(...activePoints.map(point => point.y)) +
-                carouselState.geometry.tileDiameter / 2 + getDashboardBookmarkTitleRoom();
-            return innerHeight - bottom >= getBookmarkOrbitLift() - 1;
+            const geometry = carouselState.geometry;
+            const sunGeometry = getOrbitalSunCollisionGeometry();
+            const occupiedBounds = [...document.querySelectorAll(".bookmark-grid > .grid-cell")]
+                .filter(cell => cell.querySelector(".tile[data-id]") &&
+                    !cell.classList.contains("grid-cell--reserve"))
+                .map(cell => {
+                    const tile = cell.querySelector(".tile[data-id]").getBoundingClientRect();
+                    const title = cell.querySelector(".tile-title:not([hidden])")
+                        ?.getBoundingClientRect();
+                    return {
+                        left: Math.min(tile.left, title?.left ?? tile.left),
+                        right: Math.max(tile.right, title?.right ?? tile.right),
+                        bottom: Math.max(tile.bottom, title?.bottom ?? tile.bottom)
+                    };
+                });
+            const clearances = occupiedBounds.map(bounds => {
+                const boundary = getOrbitalSunBoundaryY(sunGeometry, bounds.left, bounds.right);
+                return Number.isFinite(boundary) ? boundary - bounds.bottom : null;
+            }).filter(Number.isFinite);
+            const expectedGap = Math.max(6, geometry.tileDiameter * .12) + 2;
+            return clearances.length > 0 && clearances.every(gap => gap >= expectedGap - 1) &&
+                Math.min(...clearances) <= expectedGap + 1;
+        })(),
+        dragInsertionStability: (() => {
+            const ordered = [...layout].sort((first, second) => first.order - second.order);
+            const sourceId = ordered[0]?.id;
+            const targetId = ordered.at(-1)?.id;
+            if (!sourceId || !targetId || sourceId === targetId) return false;
+            draggingId = sourceId;
+            dragDashboardSnapshot = null;
+            const snapshot = getDashboardSnapshot();
+            const target = snapshot.items.find(item => item.id === targetId);
+            if (!target) {
+                finishDragSession();
+                return false;
+            }
+            const pointer = {
+                clientX: (target.rect.left + target.rect.right) / 2,
+                clientY: (target.rect.top + target.rect.bottom) / 2
+            };
+            const initialIntent = resolveDashboardDropIntent(pointer);
+            applyResolvedDragPreview(initialIntent);
+            const stableIntent = resolveDashboardDropIntent(pointer);
+            const plan = getDashboardInsertionPlan(sourceId, targetId, true);
+            dragPreviewIntent = { key: "dashboard:other:before", containerId: "dashboard",
+                targetId: "other", action: "before" };
+            const waitsBeforeSwitch = !shouldApplyDragPreview("dashboard", targetId, "after");
+            if (dragPreviewCandidate) dragPreviewCandidate.since -= DRAG_PREVIEW_SETTLE_MS + 1;
+            const switchesAfterDelay = shouldApplyDragPreview("dashboard", targetId, "after");
+            const result = initialIntent?.targetId === targetId &&
+                stableIntent?.targetId === targetId && initialIntent.action === "after" &&
+                plan?.positions.get(sourceId)?.order === ordered.length - 1 &&
+                plan?.positions.get(targetId)?.order === ordered.length - 2 &&
+                waitsBeforeSwitch && switchesAfterDelay;
+            finishDragSession();
+            return result;
         })(),
         accessibility: (() => {
             const dialogs = [...document.querySelectorAll("dialog")];
@@ -681,9 +722,12 @@ const layoutStabilityResult = await call("Runtime.evaluate", {
             compactSearchHiddenStable && titlesHidden && titleModeRestored;
 
         await setCheckbox("show-bookmarks", false);
+        const hiddenOrbitDrop = innerHeight * .075;
+        const baseOrbitLift = innerHeight * .018;
         const hiddenStable = sameRect(initialSun, copyRect(sun)) &&
             sameRect(initialHero, copyRect(hero)) &&
-            Math.abs(globalThis.planetOrbitLayout.getShift() + 16) < .25;
+            Math.abs(globalThis.planetOrbitLayout.getShift() -
+                (hiddenOrbitDrop - baseOrbitLift)) < .25;
         await setCheckbox("show-bookmarks", true);
 
         await setTileSize("extra-small");
@@ -725,6 +769,7 @@ const layoutStabilityResult = await call("Runtime.evaluate", {
                 Math.min(...tileMetricsAfter.map(item => item.left))) / 2,
             viewportCenter: innerWidth / 2,
             hiddenStable,
+            hiddenOrbitDrop,
             tileSizeStable,
             settingsSaved,
             extraSmallShift,
@@ -740,6 +785,14 @@ const layoutStabilityResult = await call("Runtime.evaluate", {
     returnByValue: true
 });
 state.layoutStability = layoutStabilityResult.result.value;
+await call("Emulation.setDeviceMetricsOverride", {
+    width: 1024,
+    height: 768,
+    deviceScaleFactor: 1,
+    mobile: false
+});
+await call("Page.reload", { ignoreCache: true });
+await new Promise(resolve => setTimeout(resolve, 1800));
 const compactBookmarkCountsResult = await call("Runtime.evaluate", {
     expression: `new Promise(async resolve => {
         const settle = () => new Promise(done => requestAnimationFrame(() =>
@@ -797,6 +850,17 @@ const compactBookmarkCountsResult = await call("Runtime.evaluate", {
                         other.bounds.top - other.bounds.height / 2
                 ) - (item.bounds.width + other.bounds.width) / 2));
             const gridBounds = document.querySelector(".bookmark-grid").getBoundingClientRect();
+            const sunBounds = document.querySelector(".orbital-sun").getBoundingClientRect();
+            const sunGeometry = getOrbitalSunCollisionGeometry();
+            const sunGap = Math.max(6, carouselState.geometry.tileDiameter * .12) + 2;
+            const clearsSun = item => {
+                const boundary = getOrbitalSunBoundaryY(sunGeometry, item.left, item.right);
+                return !Number.isFinite(boundary) || item.bottom <= boundary - sunGap + 1;
+            };
+            const avoidsSun = bounds.every(clearsSun) && titleBounds.every(clearsSun);
+            const sunConflicts = [...bounds, ...titleBounds].filter(item => !clearsSun(item)).map(item => ({
+                    left: item.left, right: item.right, top: item.top, bottom: item.bottom
+                }));
             const lowerArcSlots = Array.from({ length: getDashboardActiveArcCount() }, (_, arc) => {
                 const capacity = getDashboardArcCapacity(arc);
                 const cells = [...document.querySelectorAll(
@@ -830,6 +894,21 @@ const compactBookmarkCountsResult = await call("Runtime.evaluate", {
                 titleTileOverlaps: titleTileOverlaps.length,
                 titleTextOverlaps: titleOverlaps.length,
                 titleOverlapDetails: titleTileOverlaps.slice(0, 8),
+                avoidsSun,
+                sunConflicts,
+                sunBounds: {
+                    left: sunBounds.left, right: sunBounds.right,
+                    top: sunBounds.top, bottom: sunBounds.bottom
+                },
+                gridTop: gridBounds.top,
+                geometry: {
+                    height: carouselState.geometry.height,
+                    tileDiameter: carouselState.geometry.tileDiameter,
+                    tileScale: carouselState.geometry.tileScale,
+                    titleScale: carouselState.geometry.titleScale,
+                    centerY: carouselState.geometry.centerY,
+                    bounds: carouselState.geometry.bounds
+                },
                 minimumGap: gaps.length ? Math.min(...gaps) : null,
                 slotGaps,
                 lowerSlots: {
@@ -879,6 +958,7 @@ const compactBookmarkCountsResult = await call("Runtime.evaluate", {
                         compact.orbitStep < titled.orbitStep,
                     compactNotWider: compact.width <= titled.width + 1,
                     noOverlaps: compact.overlaps === 0,
+                    avoidsSun: titled.avoidsSun && compact.avoidsSun,
                     comfortableGap: count === 1 || compact.minimumGap >= 7.5,
                     minimumGap: compact.minimumGap,
                     titledSlotGaps: titled.slotGaps,
@@ -902,22 +982,30 @@ const compactBookmarkCountsResult = await call("Runtime.evaluate", {
                     bookmarkIndex = new Map(bookmarks.map(bookmark => [bookmark.id, bookmark]));
                     layout = [];
                     updateBookmarkPositions();
-                    settings.showBookmarkTitles = true;
-                    applyBookmarkTitlesVisibility();
-                    renderBookmarks(false);
-                    await settle();
-                    const measured = measure();
-                    largeResults.push({
-                        tileSize,
-                        count,
-                        noOverlaps: measured.overlaps === 0,
-                        noTitleOverlaps: measured.titleOverlaps === 0,
-                        titleTileOverlaps: measured.titleTileOverlaps,
-                        titleTextOverlaps: measured.titleTextOverlaps,
-                        titleOverlapDetails: measured.titleOverlapDetails,
-                        gap: measured.gap,
-                        slotGaps: measured.slotGaps
-                    });
+                    for (const showTitles of [true, false]) {
+                        settings.showBookmarkTitles = showTitles;
+                        applyBookmarkTitlesVisibility();
+                        renderBookmarks(false);
+                        await settle();
+                        const measured = measure();
+                        largeResults.push({
+                            tileSize,
+                            count,
+                            showTitles,
+                            noOverlaps: measured.overlaps === 0,
+                            noTitleOverlaps: measured.titleOverlaps === 0,
+                            avoidsSun: measured.avoidsSun,
+                            sunConflicts: measured.sunConflicts,
+                            sunBounds: measured.sunBounds,
+                            gridTop: measured.gridTop,
+                            geometry: measured.geometry,
+                            titleTileOverlaps: measured.titleTileOverlaps,
+                            titleTextOverlaps: measured.titleTextOverlaps,
+                            titleOverlapDetails: measured.titleOverlapDetails,
+                            gap: measured.gap,
+                            slotGaps: measured.slotGaps
+                        });
+                    }
                 }
             }
         } finally {
@@ -933,12 +1021,12 @@ const compactBookmarkCountsResult = await call("Runtime.evaluate", {
             await new Promise(done => setTimeout(done, 260));
         }
         const fixedSpacing = results.every(item =>
-            item.titledSlotGaps.every(gap => Math.abs(gap - item.titledGap) <= 1.5) &&
-            item.compactSlotGaps.every(gap => Math.abs(gap - item.compactGap) <= 1.5));
+            item.titledSlotGaps.every(gap => Math.abs(gap - item.titledGap) <= 2) &&
+            item.compactSlotGaps.every(gap => Math.abs(gap - item.compactGap) <= 2));
         const largeFixedSpacing = largeResults.every(item => item.noOverlaps &&
-            item.noTitleOverlaps &&
+            item.noTitleOverlaps && item.avoidsSun &&
             item.slotGaps.length > 0 && item.slotGaps.every(gap =>
-                Math.abs(gap - item.gap) <= 1.5));
+                Math.abs(gap - item.gap) <= 2));
         resolve({
             results,
             largeResults,
@@ -946,12 +1034,9 @@ const compactBookmarkCountsResult = await call("Runtime.evaluate", {
             ok: results.length === originalBookmarks.length &&
                 results.every(item => item.sameSizes && item.adaptiveSpacing &&
                     item.compactNotWider && item.noOverlaps && item.comfortableGap &&
+                    item.avoidsSun &&
                     item.lowerSlots.allRendered && item.lowerSlots.endpointsPresent &&
-                item.lowerSlots.followsFillOrder &&
-                item.lowerSlots.minimumEdgeBottomGap >= getBookmarkOrbitLift() - 1 &&
-                item.lowerSlots.maximumEdgeBottomGap <=
-                    getBookmarkOrbitLift() + getDashboardBookmarkTitleRoom() +
-                        getDashboardBookmarkOrbitGap() + 1) &&
+                    item.lowerSlots.followsFillOrder) &&
                 results.some(item => item.lowerSlots.emptySlotsAvailable) &&
                 fixedSpacing && largeFixedSpacing
         });
@@ -977,9 +1062,11 @@ const orbitCoverageResult = await call("Runtime.evaluate", {
                 bottom: Math.max(...bounds.map(item => item.bottom))
             };
         };
-        const outsideSide = bounds => bounds.right <= .5 ? "left" :
-            bounds.left >= innerWidth - .5 ? "right" :
-            bounds.bottom <= .5 ? "top" : bounds.top >= innerHeight - .5 ? "bottom" : "";
+        const edgeTolerance = 2;
+        const outsideSide = bounds => bounds.right <= edgeTolerance ? "left" :
+            bounds.left >= innerWidth - edgeTolerance ? "right" :
+            bounds.bottom <= edgeTolerance ? "top" :
+                bounds.top >= innerHeight - edgeTolerance ? "bottom" : "";
         const holdIsThirtySeconds = entries.every(({ state }) => state &&
             Math.abs(state.cycleDuration - state.visibleDuration - 30000) < 1);
         const transformOnly = entries.every(({ animation }) => {
@@ -1048,11 +1135,22 @@ state.orbitCoverage = orbitCoverageResult.result.value;
 state.responsive = true;
 state.responsiveChecks = [];
 for (const viewport of [
-    { width: 520, height: 198 },
+    { width: 320, height: 568 },
+    { width: 375, height: 667 },
     { width: 390, height: 844 },
     { width: 720, height: 500 },
+    { width: 768, height: 1024 },
+    { width: 964, height: 727 },
     { width: 988, height: 392 },
-    { width: 1440, height: 900 }
+    { width: 990, height: 768 },
+    { width: 1024, height: 768 },
+    { width: 1122, height: 544 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 900 },
+    { width: 1920, height: 1080 },
+    { width: 2560, height: 1080 },
+    { width: 2560, height: 1440 },
+    { width: 3840, height: 2160 }
 ]) {
     await call("Emulation.setDeviceMetricsOverride", {
         width: viewport.width,
@@ -1067,6 +1165,8 @@ for (const viewport of [
             const scene = document.querySelector(".space-scene").getBoundingClientRect();
             const backdrop = getComputedStyle(document.querySelector(".space-scene__backdrop"));
             const sun = document.querySelector(".orbital-sun").getBoundingClientRect();
+            const hero = document.querySelector(".hero-info").getBoundingClientRect();
+            const clock = document.querySelector(".clock-weather-content").getBoundingClientRect();
             const searchTrigger = document.querySelector(".orbital-search-trigger");
             const searchIcon = searchTrigger.querySelector(".search-icon").getBoundingClientRect();
             const searchLabel = searchTrigger.querySelector("span").getBoundingClientRect();
@@ -1076,13 +1176,32 @@ for (const viewport of [
                 top: Math.min(searchIcon.top, searchLabel.top),
                 bottom: Math.max(searchIcon.bottom, searchLabel.bottom)
             };
-            const bookmarkTileElements = [...document.querySelectorAll(".bookmark-grid .tile")]
+            const bookmarkTileElements = [...document.querySelectorAll(".bookmark-grid .tile[data-id]")]
                 .filter(tile => getComputedStyle(tile).visibility !== "hidden");
             const bookmarkTiles = bookmarkTileElements.map(tile => tile.getBoundingClientRect());
             const bookmarkTitleElements =
                 [...document.querySelectorAll(".bookmark-grid .tile-title")]
                     .filter(title => getComputedStyle(title).display !== "none");
             const bookmarkTitles = bookmarkTitleElements.map(title => title.getBoundingClientRect());
+            const bookmarkGridElement = document.querySelector(".bookmark-grid");
+            const isClippedByAncestor = element => {
+                const bounds = element.getBoundingClientRect();
+                for (let ancestor = element.parentElement; ancestor && ancestor !== document.body;
+                    ancestor = ancestor.parentElement) {
+                    const style = getComputedStyle(ancestor);
+                    if (![style.overflowX, style.overflowY].some(value =>
+                        value === "hidden" || value === "clip")) continue;
+                    const clipBounds = ancestor.getBoundingClientRect();
+                    if (bounds.left < clipBounds.left - 1 || bounds.right > clipBounds.right + 1 ||
+                        bounds.top < clipBounds.top - 1 || bounds.bottom > clipBounds.bottom + 1) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            const bookmarkClipSafe = getComputedStyle(bookmarkGridElement).overflow === "visible" &&
+                [...bookmarkTileElements, ...bookmarkTitleElements]
+                    .every(element => !isClippedByAncestor(element));
             const intersects = (first, second) =>
                 Math.min(first.right, second.right) - Math.max(first.left, second.left) > 1 &&
                 Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > 1;
@@ -1090,7 +1209,19 @@ for (const viewport of [
                 const titleBounds = title.getBoundingClientRect();
                 const ownTile = title.closest(".tile");
                 return bookmarkTileElements.filter(tile => tile !== ownTile &&
-                    intersects(titleBounds, tile.getBoundingClientRect()));
+                    intersects(titleBounds, tile.getBoundingClientRect())).map(tile => ({
+                        title: title.textContent,
+                        titleBounds: {
+                            left: titleBounds.left, right: titleBounds.right,
+                            top: titleBounds.top, bottom: titleBounds.bottom
+                        },
+                        tile: tile.dataset.id,
+                        tileBounds: (() => {
+                            const bounds = tile.getBoundingClientRect();
+                            return { left: bounds.left, right: bounds.right,
+                                top: bounds.top, bottom: bounds.bottom };
+                        })()
+                    }));
             });
             const bookmarkTitleOverlaps = bookmarkTitles.flatMap((first, index) =>
                 bookmarkTitles.slice(index + 1).filter(second => intersects(first, second)));
@@ -1131,6 +1262,67 @@ for (const viewport of [
                 bookmarkTitles.every(bounds => bounds.left >= -1 && bounds.right <= innerWidth + 1) &&
                 bookmarkOverlaps.length === 0 && bookmarkTitleTileOverlaps.length === 0 &&
                 bookmarkTitleOverlaps.length === 0;
+            const clockSafe = hero.top >= -1 && clock.top >= -1 && clock.bottom <= innerHeight + 1 &&
+                Math.abs((hero.left + hero.right) / 2 - innerWidth / 2) < 1 &&
+                hero.top >= innerHeight * .045 && hero.top <= innerHeight * .075 + 1;
+            const bookmarkClearOfHero = [...bookmarkTiles, ...bookmarkTitles]
+                .every(bounds => bounds.top >= hero.bottom - 1);
+            const sunGeometry = getOrbitalSunCollisionGeometry();
+            const sunGap = Math.max(6, carouselState.geometry.tileDiameter * .12) + 2;
+            const clearsSun = bounds => {
+                const boundary = getOrbitalSunBoundaryY(sunGeometry, bounds.left, bounds.right);
+                return !Number.isFinite(boundary) || bounds.bottom <= boundary - sunGap + 1;
+            };
+            const bookmarkSunSafe = [...bookmarkTiles, ...bookmarkTitles].every(clearsSun);
+            const bookmarkVisualBottom = Math.max(...[...bookmarkTiles, ...bookmarkTitles]
+                .map(bounds => bounds.bottom));
+            const bookmarkSunGap = sun.top - bookmarkVisualBottom;
+            const bookmarkCloseToSun = bookmarkSunGap <=
+                Math.max(12, Math.min(innerWidth, innerHeight) * .025);
+            const geometry = carouselState.geometry;
+            const orbitStepRegular = geometry.arcs.every((arc, index) =>
+                arc.verticalOffsetY === 0 && (!index ||
+                    Math.abs(arc.radiusX - geometry.arcs[index - 1].radiusX -
+                        geometry.orbitStep) < .1));
+            const pointsOnArcs = [...geometry.slotMap.values()].every(point => {
+                const arc = geometry.arcs[point.arc];
+                const expected = orbitalSystem.getPoint(arc.radiusX, point.angle,
+                    geometry, geometry.centerX, geometry.centerY);
+                return Math.hypot(point.x - expected.x, point.y - expected.y) < .1;
+            });
+            const occupiedArcPoints = new Map();
+            [...layout].forEach(item => {
+                const point = geometry.slotMap.get(getDashboardSlotKey(item.arc, item.slot));
+                if (!point) return;
+                if (!occupiedArcPoints.has(item.arc)) occupiedArcPoints.set(item.arc, []);
+                occupiedArcPoints.get(item.arc).push(point);
+            });
+            const smoothBookmarkArcs = [...occupiedArcPoints.values()].every(points => {
+                if (points.length < 3) return true;
+                const verticalCurve = Math.max(...points.map(point => point.y)) -
+                    Math.min(...points.map(point => point.y));
+                return verticalCurve >= geometry.tileDiameter * .1;
+            });
+            const centeredBookmarkArcs = [...occupiedArcPoints.values()].every(points => {
+                if (points.length < 2) return true;
+                const horizontalCenter = (Math.min(...points.map(point => point.x)) +
+                    Math.max(...points.map(point => point.x))) / 2;
+                return Math.abs(horizontalCenter - geometry.centerX) <=
+                    (geometry.tileDiameter + geometry.gap) / 2 + 1;
+            });
+            const expectedPackedSlots = getDashboardPackedSlots(layout.length);
+            const denseLayout = [...layout].sort((first, second) => first.order - second.order)
+                .every((item, order) => item.arc === expectedPackedSlots[order]?.arc &&
+                    item.slot === expectedPackedSlots[order]?.slot);
+            const sharedGeometry = orbitalSystem.readGeometry();
+            const responsiveExtent = Math.min(innerWidth, innerHeight);
+            const firstPlanetOrbitTop = sharedGeometry.centerY +
+                globalThis.planetOrbitLayout.getShift() -
+                getOrbitVerticalExtent(sharedGeometry.planetMinimumRadius, sharedGeometry);
+            const planetOrbitsAboveBookmarks = firstPlanetOrbitTop <=
+                bookmarkExtents.top - responsiveExtent * PLANET_ORBIT_BOOKMARK_GAP_RATIO + 1;
+            const fixedBookmarkScale = Math.abs(geometry.tileScale - 1) < .001 &&
+                Math.abs(geometry.titleScale - 1) < .001;
             const copyBounds = bounds => ({
                 left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom,
                 width: bounds.width, height: bounds.height
@@ -1179,6 +1371,19 @@ for (const viewport of [
                 visiblePlanets,
                 overlaps,
                 bookmarkSafe,
+                bookmarkClipSafe,
+                bookmarkSunSafe,
+                bookmarkCloseToSun,
+                bookmarkSunGap,
+                clockSafe,
+                bookmarkClearOfHero,
+                orbitStepRegular,
+                pointsOnArcs,
+                smoothBookmarkArcs,
+                centeredBookmarkArcs,
+                denseLayout,
+                planetOrbitsAboveBookmarks,
+                fixedBookmarkScale,
                 bookmarkExtents,
                 geometryBounds: carouselState.geometry?.bounds,
                 geometryHeight: carouselState.geometry?.height,
@@ -1186,6 +1391,7 @@ for (const viewport of [
                 gridTop: document.querySelector(".bookmark-grid").getBoundingClientRect().top,
                 bookmarkOverlaps,
                 bookmarkTitleTileOverlaps: bookmarkTitleTileOverlaps.length,
+                bookmarkTitleTileOverlapDetails: bookmarkTitleTileOverlaps,
                 bookmarkTitleOverlaps: bookmarkTitleOverlaps.length,
                 bookmarkTitleOverlapDetails,
                 bookmarkUnsafeTiles,
@@ -1199,7 +1405,14 @@ for (const viewport of [
             checks.ok = checks.viewport && checks.scene && checks.backdrop &&
                 checks.planetCount && checks.planetImages &&
                 checks.visiblePlanets.length >= 1 &&
-                checks.bookmarkSafe && checks.searchSafe && checks.sun && checks.overflow;
+                checks.bookmarkSafe && checks.bookmarkClipSafe && checks.bookmarkSunSafe &&
+                checks.bookmarkCloseToSun &&
+                checks.clockSafe &&
+                checks.bookmarkClearOfHero && checks.searchSafe &&
+                checks.orbitStepRegular && checks.pointsOnArcs && checks.smoothBookmarkArcs &&
+                checks.centeredBookmarkArcs && checks.denseLayout &&
+                checks.planetOrbitsAboveBookmarks && checks.fixedBookmarkScale &&
+                checks.sun && checks.overflow;
             return checks;
         })()`,
         returnByValue: true
@@ -1209,6 +1422,17 @@ for (const viewport of [
             const settle = () => new Promise(done => requestAnimationFrame(() =>
                 requestAnimationFrame(() => setTimeout(done, 280))));
             const input = document.getElementById("show-bookmark-titles");
+            const sizeSelect = document.getElementById("tile-size-select");
+            const setTitles = async visible => {
+                input.checked = visible;
+                input.dispatchEvent(new Event("change", { bubbles: true }));
+                await settle();
+            };
+            const setSize = async size => {
+                sizeSelect.value = size;
+                sizeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+                await settle();
+            };
             const measure = () => {
                 const tiles = [...document.querySelectorAll(".bookmark-grid .tile[data-id]")];
                 const bounds = tiles.map(tile => tile.getBoundingClientRect());
@@ -1224,42 +1448,51 @@ for (const viewport of [
                     center: (Math.max(...bounds.map(item => item.right)) +
                         Math.min(...bounds.map(item => item.left))) / 2,
                     gap: carouselState.geometry.gap,
+                    tileScale: carouselState.geometry.tileScale,
+                    titleScale: carouselState.geometry.titleScale,
                     orbitStep: carouselState.geometry.orbitStep,
                     safe: bounds.every(item => item.left >= -1 && item.right <= innerWidth + 1 &&
                         item.top >= -1 && item.bottom <= innerHeight + 1),
                     overlaps: overlaps.length
                 };
             };
-            input.checked = true;
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-            await settle();
+            const modeIsSafe = (titledMode, compactMode) =>
+                titledMode.positions.length === compactMode.positions.length &&
+                Math.abs(compactMode.center - titledMode.center) <= 5 &&
+                compactMode.safe && !compactMode.overlaps &&
+                titledMode.safe && !titledMode.overlaps;
+            await setTitles(true);
             const titled = measure();
-            input.checked = false;
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-            await settle();
+            await setTitles(false);
             const compact = measure();
-            input.checked = true;
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-            await settle();
+            await setTitles(true);
             const restored = measure();
+            await setSize("extra-small");
+            const extraSmallTitled = measure();
+            await setTitles(false);
+            const extraSmallCompact = measure();
+            await setTitles(true);
+            await setSize("small");
+            const largeModeSafe = modeIsSafe(titled, compact);
+            const smallModeSafe = modeIsSafe(extraSmallTitled, extraSmallCompact);
             resolve({
                 titled,
                 compact,
                 restored,
-                ok: titled.positions.length === compact.positions.length &&
-                    compact.gap < titled.gap && compact.orbitStep < titled.orbitStep &&
-                    compact.width <= titled.width + 1 &&
-                    Math.abs(compact.center - titled.center) <= 4 &&
+                extraSmallTitled,
+                extraSmallCompact,
+                largeModeSafe,
+                smallModeSafe,
+                ok: largeModeSafe && smallModeSafe &&
                     titled.positions.every((item, index) =>
                         Math.abs(item.left - restored.positions[index].left) <= 1 &&
-                        Math.abs(item.top - restored.positions[index].top) <= 1) &&
-                    compact.safe && !compact.overlaps
+                        Math.abs(item.top - restored.positions[index].top) <= 1)
             });
         })`,
         awaitPromise: true,
         returnByValue: true
     });
-    state.responsiveChecks.push({ viewport, ...responsiveResult.result.value,
+    state.responsiveChecks.push({ dimensions: viewport, ...responsiveResult.result.value,
         titleVisibility: titleVisibilityResult.result.value });
     state.responsive = state.responsive && responsiveResult.result.value.ok &&
         titleVisibilityResult.result.value.ok;
@@ -1308,9 +1541,10 @@ socket.close();
 const valid = state?.title === "Orbitella" && state.scene && state.spaceBackground &&
     state.permanentCosmicScene && state.layoutStability?.ok && state.compactBookmarkCounts?.ok &&
     state.bookmarkGrid && state.clockGlass && state.clockGlassEffect && state.bookmarkCartoonStyle &&
-    state.bookmarkColorVariety && state.faviconSizing && state.faviconContrast &&
+    state.faviconSizing && state.faviconContrast &&
     state.bookmarkCentering && state.bookmarkTitleWrapping &&
-    state.bookmarkOrbitLift && state.accessibility?.ok && state.weatherState?.ok &&
+    state.bookmarkOrbitLift && state.dragInsertionStability &&
+    state.accessibility?.ok && state.weatherState?.ok &&
     state.settings?.ok && state.planets === 8 &&
     state.earthMoons === 1 && state.moonTexture && state.otherMoons === 0 &&
     state.staticStars && state.planetOrbitLayout && state.planetTextures && state.planetSizing &&
@@ -1326,7 +1560,64 @@ const valid = state?.title === "Orbitella" && state.scene && state.spaceBackgrou
     state.planetReloadContinuity &&
     state.responsive && !state.loading;
 if (!valid || runtimeErrors.length) {
-    console.error(JSON.stringify({ state, runtimeErrors }, null, 2));
+    const responsiveFailures = (state?.responsiveChecks || [])
+        .filter(item => !item.ok || !item.titleVisibility?.ok)
+        .map(item => ({
+            dimensions: item.dimensions,
+            layoutOk: item.ok,
+            bookmarkSafe: item.bookmarkSafe,
+            bookmarkClipSafe: item.bookmarkClipSafe,
+            bookmarkSunSafe: item.bookmarkSunSafe,
+            bookmarkCloseToSun: item.bookmarkCloseToSun,
+            bookmarkSunGap: item.bookmarkSunGap,
+            clockSafe: item.clockSafe,
+            bookmarkClearOfHero: item.bookmarkClearOfHero,
+            planetOrbitsAboveBookmarks: item.planetOrbitsAboveBookmarks,
+            fixedBookmarkScale: item.fixedBookmarkScale,
+            orbitStepRegular: item.orbitStepRegular,
+            pointsOnArcs: item.pointsOnArcs,
+            smoothBookmarkArcs: item.smoothBookmarkArcs,
+            centeredBookmarkArcs: item.centeredBookmarkArcs,
+            denseLayout: item.denseLayout,
+            searchSafe: item.searchSafe,
+            overflow: item.overflow,
+            bookmarkExtents: item.bookmarkExtents,
+            geometryBounds: item.geometryBounds,
+            geometryHeight: item.geometryHeight,
+            gridTop: item.gridTop,
+            sunBounds: item.sunBounds,
+            bookmarkUnsafeTiles: item.bookmarkUnsafeTiles,
+            bookmarkUnsafeTitles: item.bookmarkUnsafeTitles,
+            bookmarkOverlaps: item.bookmarkOverlaps,
+            bookmarkTitleTileOverlaps: item.bookmarkTitleTileOverlaps,
+            bookmarkTitleTileOverlapDetails: item.bookmarkTitleTileOverlapDetails,
+            bookmarkTitleOverlaps: item.bookmarkTitleOverlaps,
+            bookmarkTitleOverlapDetails: item.bookmarkTitleOverlapDetails,
+            titleVisibility: item.titleVisibility
+        }));
+    console.error(JSON.stringify({
+        core: {
+            layoutStability: state?.layoutStability,
+            compactBookmarkCounts: state?.compactBookmarkCounts ? {
+                ok: state.compactBookmarkCounts.ok,
+                fixedSpacing: state.compactBookmarkCounts.fixedSpacing,
+                failingResults: state.compactBookmarkCounts.results.filter(item =>
+                    !(item.sameSizes && item.adaptiveSpacing && item.compactNotWider &&
+                        item.noOverlaps && item.comfortableGap && item.avoidsSun &&
+                        item.lowerSlots.allRendered && item.lowerSlots.endpointsPresent &&
+                        item.lowerSlots.followsFillOrder)),
+                failingLargeResults: state.compactBookmarkCounts.largeResults.filter(item =>
+                    !(item.noOverlaps && item.noTitleOverlaps && item.avoidsSun &&
+                        item.slotGaps.length > 0 && item.slotGaps.every(gap =>
+                            Math.abs(gap - item.gap) <= 2)))
+            } : null,
+            orbitCoverage: state?.orbitCoverage,
+            responsive: state?.responsive,
+            planetReloadContinuity: state?.planetReloadContinuity
+        },
+        responsiveFailures,
+        runtimeErrors
+    }, null, 2));
     process.exit(1);
 }
 

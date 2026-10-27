@@ -114,7 +114,7 @@
 }
 
 .space-scene__planets {
-    --planet-orbit-shift-y: -16px;
+    --planet-orbit-shift-y: -1.8vh;
     z-index: 3;
     overflow: visible;
     transform: translate3d(0, var(--planet-orbit-shift-y), 0);

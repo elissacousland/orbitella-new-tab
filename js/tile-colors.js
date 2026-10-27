@@ -39,41 +39,22 @@ const darkBrandHosts = [
 const faviconAppearanceRequests = new Map();
 const FAVICON_SPHERE_SCALE = .94;
 
-const tileColorFamilies = {
-    red: ["hsl(352 54% 57%)", "hsl(8 55% 58%)", "hsl(340 51% 58%)",
-        "hsl(359 49% 56%)", "hsl(346 47% 59%)"],
-    orange: ["hsl(20 55% 59%)", "hsl(28 52% 60%)", "hsl(13 51% 58%)",
-        "hsl(33 48% 57%)", "hsl(17 49% 61%)"],
-    yellow: ["hsl(42 51% 57%)", "hsl(48 48% 57%)", "hsl(35 51% 56%)",
-        "hsl(52 44% 58%)", "hsl(39 47% 61%)"],
-    green: ["hsl(145 45% 50%)", "hsl(163 43% 50%)", "hsl(128 42% 51%)",
-        "hsl(153 40% 55%)", "hsl(116 38% 54%)"],
-    cyan: ["hsl(188 48% 53%)", "hsl(177 45% 52%)", "hsl(196 47% 55%)",
-        "hsl(183 42% 57%)", "hsl(201 43% 58%)"],
-    blue: ["hsl(211 53% 57%)", "hsl(223 50% 58%)", "hsl(202 51% 55%)",
-        "hsl(231 45% 60%)", "hsl(207 46% 61%)"],
-    violet: ["hsl(258 45% 60%)", "hsl(274 44% 59%)", "hsl(245 42% 61%)",
-        "hsl(285 40% 58%)", "hsl(252 39% 64%)"],
-    pink: ["hsl(324 49% 60%)", "hsl(338 47% 60%)", "hsl(310 45% 59%)",
-        "hsl(345 44% 62%)", "hsl(316 40% 63%)"],
-    neutralDark: ["hsl(214 25% 47%)", "hsl(232 23% 49%)", "hsl(258 21% 50%)", "hsl(194 25% 47%)"],
-    neutralLight: ["hsl(216 28% 45%)", "hsl(244 26% 47%)", "hsl(192 28% 45%)", "hsl(268 24% 48%)"],
-    neutral: ["hsl(216 27% 51%)", "hsl(244 25% 52%)", "hsl(192 27% 51%)", "hsl(272 23% 53%)"]
-};
+const bookmarkPastelPalette = Object.freeze([
+    "#C57D9A", // ягодный
+    "#D8878A", // коралловый
+    "#E6A78B", // персиковый
+    "#E7CF73", // солнечный
+    "#EBDD96", // лимонный
+    "#B4C879", // фисташковый
+    "#83B783", // травяной
+    "#98AD89", // шалфейный
+    "#819BCB", // васильковый
+    "#AE96CD", // сиреневый
+    "#9677B8", // сливовый
+    "#CE91B3"  // пудровый
+]);
 
-const tileFamilyVariety = {
-    red: ["red", "orange", "pink", "violet"],
-    orange: ["orange", "yellow", "red", "pink"],
-    yellow: ["yellow", "orange", "green", "cyan"],
-    green: ["green", "cyan", "yellow", "blue", "orange"],
-    cyan: ["cyan", "green", "blue", "yellow", "orange", "violet"],
-    blue: ["blue", "cyan", "violet", "green", "orange", "pink"],
-    violet: ["violet", "pink", "blue", "orange", "cyan"],
-    pink: ["pink", "red", "violet", "orange", "cyan"],
-    neutralDark: ["violet", "cyan", "orange", "green", "blue", "pink"],
-    neutralLight: ["blue", "violet", "green", "orange", "cyan", "pink"],
-    neutral: ["blue", "violet", "cyan", "orange", "green", "pink"]
-};
+const neutralPastelOrder = Object.freeze([0, 5, 9, 2, 6, 11, 3, 10, 7, 1, 4, 8]);
 
 function getHostAppearance(pageUrl) {
     const host = new URL(pageUrl).hostname.replace(/^www\./, "").toLowerCase();
@@ -83,8 +64,7 @@ function getHostAppearance(pageUrl) {
         return {
             color: "#b8c2d4",
             neutral: true,
-            tone: "dark",
-            lockedFamily: false
+            tone: "dark"
         };
     }
     for (const [domain, color] of brandTileColors) {
@@ -92,8 +72,7 @@ function getHostAppearance(pageUrl) {
             return {
                 color: color,
                 neutral: false,
-                tone: "color",
-                lockedFamily: true
+                tone: "color"
             };
         }
     }
@@ -331,63 +310,46 @@ function getCssColorHsl(color) {
     return rgbToHsl(pixel[0], pixel[1], pixel[2]);
 }
 
-function getColorFamily(color) {
-    const [hue, saturation] = getCssColorHsl(color);
-    if (saturation < .25) return "neutral";
-    if (hue < 15 || hue >= 345) return "red";
-    if (hue < 38) return "orange";
-    if (hue < 65) return "yellow";
-    if (hue < 170) return "green";
-    if (hue < 200) return "cyan";
-    if (hue < 245) return "blue";
-    if (hue < 295) return "violet";
-    if (hue < 345) return "pink";
-    return "red";
-}
-
 function getTextHash(text) {
     let hash = 0;
     for (const character of text) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
     return hash;
 }
 
+function getHueDistance(firstHue, secondHue) {
+    const difference = Math.abs(firstHue - secondHue) % 360;
+    return Math.min(difference, 360 - difference);
+}
+
 function getTileColor(appearance, pageUrl, bookmarkId) {
-    let detectedFamily = appearance.neutral ? "neutral" : getColorFamily(appearance.color);
-    if (detectedFamily === "neutral") {
-        detectedFamily = appearance.tone === "dark" ? "neutralDark" :
-            appearance.tone === "light" ? "neutralLight" : "neutral";
-    }
     const host = new URL(pageUrl).hostname.toLowerCase();
     const stableKey = `${host}:${bookmarkId}`;
-    const familyChoices = appearance.lockedFamily ? [detectedFamily] :
-        tileFamilyVariety[detectedFamily] || [detectedFamily];
-    const family = familyChoices[getTextHash(`${stableKey}:family`) % familyChoices.length];
-    const palette = tileColorFamilies[family];
-    const index = getTextHash(`${stableKey}:shade`) % palette.length;
-    let color = palette[index];
-    if (!appearance.neutral) {
-        const [, , iconLightness] = getCssColorHsl(appearance.color);
-        const [hue, saturation, tileLightness] = getCssColorHsl(color);
-        if (Math.abs(iconLightness - tileLightness) < .18) {
-            const correctedLightness = iconLightness > .52 ?
-                Math.max(.30, tileLightness - .16) : Math.min(.68, tileLightness + .16);
-            color = `hsl(${Math.round(hue)} ${Math.round(saturation * 100)}% ${Math.round(correctedLightness * 100)}%)`;
-        }
+    if (appearance.neutral) {
+        const orderIndex = getTextHash(stableKey) % neutralPastelOrder.length;
+        return bookmarkPastelPalette[neutralPastelOrder[orderIndex]];
     }
-    return color;
+    const [iconHue] = getCssColorHsl(appearance.color);
+    let closestColor = bookmarkPastelPalette[0];
+    let closestDistance = getHueDistance(iconHue, getCssColorHsl(closestColor)[0]);
+    bookmarkPastelPalette.slice(1).forEach(candidate => {
+        const [candidateHue] = getCssColorHsl(candidate);
+        const distance = getHueDistance(iconHue, candidateHue);
+        if (distance >= closestDistance) return;
+        closestColor = candidate;
+        closestDistance = distance;
+    });
+    return closestColor;
 }
 
 // подбираем палитру
 function getTileMaterial(color) {
     const [hue, saturation, lightness] = getCssColorHsl(color);
-    const softSaturation = Math.min(.57, Math.max(.40, saturation * .89));
-    const softLightness = Math.min(.64, Math.max(.46, lightness));
     const companionHue = (hue + 8) % 360;
     return {
-        base: `hsl(${Math.round(hue)} ${Math.round(softSaturation * 100)}% ${Math.round(softLightness * 100)}%)`,
-        light: `hsl(${Math.round(hue)} ${Math.round(Math.max(.38, softSaturation - .04) * 100)}% ${Math.round(Math.min(.70, softLightness + .11) * 100)}%)`,
-        soft: `hsl(${Math.round(companionHue)} ${Math.round(Math.max(.36, softSaturation - .06) * 100)}% ${Math.round(Math.min(.65, softLightness + .05) * 100)}%)`,
-        deep: `hsl(${Math.round(hue)} ${Math.round(Math.min(.64, softSaturation + .02) * 100)}% ${Math.round(Math.max(.35, softLightness - .12) * 100)}%)`
+        base: color,
+        light: `hsl(${Math.round(hue)} ${Math.round(Math.max(.32, saturation - .05) * 100)}% ${Math.round(Math.min(.82, lightness + .09) * 100)}%)`,
+        soft: `hsl(${Math.round(companionHue)} ${Math.round(Math.max(.30, saturation - .08) * 100)}% ${Math.round(Math.min(.78, lightness + .04) * 100)}%)`,
+        deep: `hsl(${Math.round(hue)} ${Math.round(Math.min(.58, saturation + .01) * 100)}% ${Math.round(Math.max(.48, lightness - .12) * 100)}%)`
     };
 }
 

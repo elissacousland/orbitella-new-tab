@@ -38,18 +38,25 @@ const dashboardBookmarkTitleRoom = Object.freeze({
 
 const dashboardBookmarkSpacing = Object.freeze({
     "extra-small": {
-        titledGap: 18, compactGap: 8, titledOrbitGap: 0, compactOrbitGap: 0, orbitScale: .84
+        titledGap: 18, compactGap: 8, titledOrbitGap: 0, compactOrbitGap: 6,
+        titledOrbitScale: .84, compactOrbitScale: .72
     },
     small: {
-        titledGap: 12, compactGap: 10, titledOrbitGap: 7, compactOrbitGap: 8, orbitScale: .9
+        titledGap: 12, compactGap: 10, titledOrbitGap: 7, compactOrbitGap: 8,
+        titledOrbitScale: .9, compactOrbitScale: .78
     },
     medium: {
-        titledGap: 24, compactGap: 12, titledOrbitGap: 16, compactOrbitGap: 9, orbitScale: 1
+        titledGap: 24, compactGap: 12, titledOrbitGap: 16, compactOrbitGap: 9,
+        titledOrbitScale: 1, compactOrbitScale: .86
     }
 });
 
 function getDashboardBookmarkTitleRoom() {
     if (!settings.showBookmarkTitles) return 0;
+    return getDashboardBookmarkReservedTitleRoom();
+}
+
+function getDashboardBookmarkReservedTitleRoom() {
     return dashboardBookmarkTitleRoom[settings.tileSize] || dashboardBookmarkTitleRoom.medium;
 }
 
@@ -58,14 +65,29 @@ function getDashboardBookmarkGap() {
     return settings.showBookmarkTitles ? spacing.titledGap : spacing.compactGap;
 }
 
+function getDashboardBookmarkReservedGap() {
+    const spacing = dashboardBookmarkSpacing[settings.tileSize] || dashboardBookmarkSpacing.medium;
+    return Math.max(spacing.titledGap, spacing.compactGap);
+}
+
 function getDashboardBookmarkOrbitGap() {
     const spacing = dashboardBookmarkSpacing[settings.tileSize] || dashboardBookmarkSpacing.medium;
     return settings.showBookmarkTitles ? spacing.titledOrbitGap : spacing.compactOrbitGap;
 }
 
+function getDashboardBookmarkReservedOrbitGap() {
+    const spacing = dashboardBookmarkSpacing[settings.tileSize] || dashboardBookmarkSpacing.medium;
+    return Math.max(spacing.titledOrbitGap, spacing.compactOrbitGap);
+}
+
 function getDashboardBookmarkOrbitScale() {
     const spacing = dashboardBookmarkSpacing[settings.tileSize] || dashboardBookmarkSpacing.medium;
-    return spacing.orbitScale || 1;
+    return settings.showBookmarkTitles ? spacing.titledOrbitScale : spacing.compactOrbitScale;
+}
+
+function getDashboardBookmarkReservedOrbitScale() {
+    const spacing = dashboardBookmarkSpacing[settings.tileSize] || dashboardBookmarkSpacing.medium;
+    return Math.max(spacing.titledOrbitScale, spacing.compactOrbitScale);
 }
 
 function getBookmarkSyncKey(node, path) {
@@ -215,6 +237,47 @@ function getDashboardEllipseArcLength(radiusX, radiusY, halfSpan) {
     return length;
 }
 
+function getDashboardMinimumArcCapacity(tileDiameter, titledLabelRoom, effectiveOrbitStep,
+    perspective, viewportHeight) {
+    const itemCount = Math.max(layout.length, bookmarks.length);
+    if (!itemCount) return 1;
+    const heroBounds = globalThis.document?.querySelector(".hero-info")?.getBoundingClientRect();
+    const sunBounds = globalThis.document?.querySelector(".orbital-sun")?.getBoundingClientRect();
+    const responsiveExtent = Math.min(Number(globalThis.innerWidth) || 1280, viewportHeight);
+    const safeTop = Number.isFinite(heroBounds?.bottom) ?
+        heroBounds.bottom + responsiveExtent * .012 : viewportHeight * .2;
+    const sunGap = Math.max(8, tileDiameter * .12 + 2);
+    const safeBottom = Number.isFinite(sunBounds?.top) && sunBounds.width && sunBounds.height ?
+        sunBounds.top - sunGap : viewportHeight * .82;
+    const availableHeight = Math.max(tileDiameter + titledLabelRoom, safeBottom - safeTop);
+    const rowHeight = tileDiameter + titledLabelRoom;
+    const rowStep = Math.max(1, effectiveOrbitStep * Math.max(.65, perspective));
+    const maximumArcCount = Math.max(1,
+        Math.floor(Math.max(0, availableHeight - rowHeight) / rowStep) + 1);
+    return Math.max(1, Math.ceil(itemCount / maximumArcCount));
+}
+
+function getDashboardReachForCapacity(radiusX, radiusY, maximumReach, capacity, slotSpacing) {
+    if (capacity <= 1) return 0;
+    const requiredHalfLength = slotSpacing * (capacity - 1) / 2;
+    let lowerReach = 0;
+    let upperReach = Math.max(0, Math.min(maximumReach, radiusX * .995));
+    const upperSpan = Math.asin(Math.min(.995, upperReach / Math.max(1, radiusX)));
+    if (getDashboardEllipseArcLength(radiusX, radiusY, upperSpan) <= requiredHalfLength) {
+        return upperReach;
+    }
+    for (let iteration = 0; iteration < 18; iteration += 1) {
+        const middleReach = (lowerReach + upperReach) / 2;
+        const middleSpan = Math.asin(Math.min(.995, middleReach / Math.max(1, radiusX)));
+        if (getDashboardEllipseArcLength(radiusX, radiusY, middleSpan) < requiredHalfLength) {
+            lowerReach = middleReach;
+        } else {
+            upperReach = middleReach;
+        }
+    }
+    return upperReach;
+}
+
 // считаем размеры дуг
 function getDashboardArcMetrics(arc) {
     const arcIndex = Math.max(0, Number(arc) || 0);
@@ -234,8 +297,9 @@ function getDashboardArcMetrics(arc) {
     };
     const geometry = typeof globalThis.orbitalSystem?.readGeometry === "function" ?
         globalThis.orbitalSystem.readGeometry() : fallbackGeometry;
-    const effectiveOrbitStep = Math.max(geometry.bookmarkStep * (spacing.orbitScale || 1),
-        (tileDiameter + titledLabelRoom + spacing.titledOrbitGap) /
+    const titledOrbitGap = Math.max(spacing.titledOrbitGap, spacing.titledGap * .35);
+    const effectiveOrbitStep = Math.max(geometry.bookmarkStep * spacing.titledOrbitScale,
+        (tileDiameter + titledLabelRoom + titledOrbitGap) /
             Math.max(.65, geometry.perspective));
     const radiusX = geometry.bookmarkBaseRadius + effectiveOrbitStep * arcIndex;
     const radiusY = radiusX * geometry.perspective;
@@ -250,13 +314,18 @@ function getDashboardArcMetrics(arc) {
     const centerInGrid = geometry.centerX - gridLeft;
     const sideReach = Math.max(minimumSlotSpacing,
         Math.min(centerInGrid, availableWidth - centerInGrid) - tileDiameter / 2 - 20);
-    const visibleReach = Math.max(minimumSlotSpacing, Math.min(bottomReach, sideReach));
+    const naturalReach = Math.max(minimumSlotSpacing, Math.min(bottomReach, sideReach));
+    const minimumCapacity = getDashboardMinimumArcCapacity(tileDiameter, titledLabelRoom,
+        effectiveOrbitStep, geometry.perspective, viewportHeight);
+    const requiredReach = getDashboardReachForCapacity(radiusX, radiusY, sideReach,
+        minimumCapacity, minimumSlotSpacing);
+    const visibleReach = Math.min(sideReach, Math.max(naturalReach, requiredReach));
     const halfSpan = Math.asin(Math.min(.995, visibleReach / Math.max(1, radiusX)));
     const halfArcLength = getDashboardEllipseArcLength(radiusX, radiusY, halfSpan);
     const intervalCount = Math.max(2,
         Math.floor(halfArcLength * 2 / minimumSlotSpacing));
     return {
-        capacity: Math.min(31, intervalCount + 1),
+        capacity: Math.min(31, Math.max(minimumCapacity, intervalCount + 1)),
         reach: visibleReach,
         radiusX
     };
@@ -426,7 +495,7 @@ function migrateDashboardLayoutToAutomaticArcs() {
 function syncDashboardOrder() {
     layout.sort(compareDashboardLayoutItems);
     layout.forEach((item, index) => item.order = index);
-    normalizeDashboardSlots(false);
+    normalizeDashboardSlots(true);
 }
 
 function getDashboardActiveArcCount(extraArc = -1) {
@@ -453,67 +522,41 @@ function getDashboardVisualSlots(arcCount = getDashboardActiveArcCount()) {
     return slots;
 }
 
+function getDashboardPackedSlots(count) {
+    const slots = [];
+    for (let arc = 0; slots.length < count && arc < 100; arc += 1) {
+        getDashboardArcFillOrder(arc).forEach(slot => {
+            if (slots.length < count) slots.push({ arc, slot, x: slot, y: arc });
+        });
+    }
+    return slots;
+}
+
+function applyDashboardOrder(orderedIds) {
+    const positions = new Map();
+    const slots = getDashboardPackedSlots(orderedIds.length);
+    orderedIds.forEach((id, order) => {
+        const position = slots[order];
+        if (position) positions.set(id, { ...position, order });
+    });
+    return positions;
+}
+
 function getDashboardInsertionPlan(sourceId, targetId, afterTarget = false) {
     syncDashboardOrder();
     const target = layout.find(item => item.id === targetId && item.id !== sourceId);
     if (!target) return null;
-
-    const occupiedItems = layout.filter(item => item.id !== sourceId);
-    const occupiedBySlot = new Map(occupiedItems.map(item => [getDashboardSlotKey(item.arc, item.slot), item]));
-    let arcCount = getDashboardActiveArcCount();
-    let visualSlots = getDashboardVisualSlots(arcCount);
-    if (visualSlots.every(position => occupiedBySlot.has(position.key))) {
-        visualSlots = getDashboardVisualSlots(++arcCount);
-    }
-    const targetIndex = visualSlots.findIndex(position =>
-        position.arc === target.arc && position.slot === target.slot);
-    if (targetIndex < 0) return null;
-
-    const boundary = targetIndex + (afterTarget ? 1 : 0);
-    let emptyIndex = visualSlots.findIndex((position, index) =>
-        index >= boundary && !occupiedBySlot.has(position.key));
-    if (emptyIndex < 0) {
-        for (let index = Math.min(boundary - 1, visualSlots.length - 1); index >= 0; index -= 1) {
-            if (!occupiedBySlot.has(visualSlots[index].key)) {
-                emptyIndex = index;
-                break;
-            }
-        }
-    }
-    if (emptyIndex < 0) return null;
-
-    const positions = new Map();
-    if (emptyIndex >= boundary) {
-        for (let index = emptyIndex; index > boundary; index -= 1) {
-            const shifted = occupiedBySlot.get(visualSlots[index - 1].key);
-            if (shifted) positions.set(shifted.id, visualSlots[index]);
-        }
-        positions.set(sourceId, visualSlots[boundary]);
-    } else {
-        for (let index = emptyIndex; index < boundary - 1; index += 1) {
-            const shifted = occupiedBySlot.get(visualSlots[index + 1].key);
-            if (shifted) positions.set(shifted.id, visualSlots[index]);
-        }
-        positions.set(sourceId, visualSlots[Math.max(0, boundary - 1)]);
-    }
-
-    const remaining = layout.filter(item => item.id !== sourceId);
+    const orderedItems = [...layout].sort(compareDashboardLayoutItems);
+    const remaining = orderedItems.filter(item => item.id !== sourceId);
     const targetOrder = remaining.findIndex(item => item.id === targetId);
+    if (targetOrder < 0) return null;
     const insertionIndex = targetOrder + (afterTarget ? 1 : 0);
     const orderedIds = remaining.map(item => item.id);
     orderedIds.splice(insertionIndex, 0, sourceId);
-    orderedIds.forEach((id, order) => {
-        const current = positions.get(id) || layout.find(item => item.id === id);
-        if (current) positions.set(id, {
-            arc: current.arc,
-            slot: current.slot,
-            x: current.slot,
-            y: current.arc,
-            order
-        });
-    });
+    const positions = applyDashboardOrder(orderedIds);
     const insertionSlot = positions.get(sourceId);
-    return { positions, insertionIndex, insertionSlot, arcCount };
+    return { positions, insertionIndex, insertionSlot,
+        arcCount: getDashboardActiveArcCount(insertionSlot?.arc) };
 }
 
 function moveDashboardLayoutItemToSlot(sourceId, arc, slot) {
@@ -521,12 +564,24 @@ function moveDashboardLayoutItemToSlot(sourceId, arc, slot) {
     const source = layout.find(item => item.id === sourceId);
     if (!source || !isValidDashboardSlot(arc, slot)) return false;
     const target = layout.find(item => item.id !== sourceId && item.arc === arc && item.slot === slot);
-    if (target) {
-        const sourcePosition = { arc: source.arc, slot: source.slot, x: source.slot, y: source.arc };
-        Object.assign(target, sourcePosition);
+    if (target) return insertDashboardLayoutItem(sourceId, target.id, undefined, undefined, false);
+    const remainingIds = layout.filter(item => item.id !== sourceId)
+        .sort(compareDashboardLayoutItems).map(item => item.id);
+    const visualSlots = [];
+    for (let currentArc = 0; currentArc <= arc; currentArc += 1) {
+        getDashboardArcFillOrder(currentArc).forEach(currentSlot =>
+            visualSlots.push({ arc: currentArc, slot: currentSlot }));
     }
-    Object.assign(source, { arc, slot, x: slot, y: arc });
-    normalizeDashboardSlots(false);
+    const requestedIndex = visualSlots.findIndex(position =>
+        position.arc === arc && position.slot === slot);
+    const insertionIndex = Math.max(0, Math.min(remainingIds.length,
+        requestedIndex < 0 ? remainingIds.length : requestedIndex));
+    remainingIds.splice(insertionIndex, 0, sourceId);
+    applyDashboardOrder(remainingIds).forEach((position, id) => {
+        const item = layout.find(layoutItem => layoutItem.id === id);
+        if (item) Object.assign(item, position);
+    });
+    syncDashboardOrder();
     return true;
 }
 

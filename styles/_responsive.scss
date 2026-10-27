@@ -36,7 +36,6 @@ html body {
     @media (max-width: 600px) {
         main {
             width: calc(100% - 28px);
-            padding-top: 132px;
         }
 
         .account-toolbar {
@@ -49,15 +48,6 @@ html body {
 
 @media (max-height: 760px) {
     html body {
-        main {
-            padding-top: clamp(64px, 10vh, 92px);
-        }
-
-        .hero-info {
-            margin-bottom: -12px;
-            transform: translateY(-28px);
-        }
-
         .clock-weather {
             min-height: 126px;
         }
@@ -70,15 +60,6 @@ html body {
 
 @media (max-height: 620px) {
     html body {
-        main {
-            padding-top: 48px;
-        }
-
-        .hero-info {
-            margin-bottom: -4px;
-            transform: translateY(-14px);
-        }
-
         .clock-weather {
             min-height: 112px;
         }

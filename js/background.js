@@ -77,8 +77,10 @@ globalThis.orbitalSystem = Object.freeze({
 });
 
 const planetOrbitLayer = document.querySelector(".space-scene__planets");
-const PLANET_ORBIT_BASE_LIFT = 16;
-let planetOrbitShiftY = -PLANET_ORBIT_BASE_LIFT;
+const PLANET_ORBIT_BASE_LIFT_RATIO = .018;
+const getPlanetOrbitBaseLift = () =>
+    Math.min(window.innerWidth, window.innerHeight) * PLANET_ORBIT_BASE_LIFT_RATIO;
+let planetOrbitShiftY = -getPlanetOrbitBaseLift();
 let planetOrbitRefreshTimer = 0;
 
 function getOrbitVerticalExtent(radius, geometry) {
@@ -87,13 +89,15 @@ function getOrbitVerticalExtent(radius, geometry) {
         radiusY * Math.cos(geometry.tilt));
 }
 
-function alignPlanetOrbitsAbove(bookmarkTop, gap = 20) {
+function alignPlanetOrbitsAbove(bookmarkTop, gap = 20, freeSpaceDrop = 0) {
     const geometry = orbitalSystem.readGeometry();
     const firstOrbitTop = geometry.centerY -
         getOrbitVerticalExtent(geometry.planetMinimumRadius, geometry);
     const requestedShift = Number.isFinite(bookmarkTop) ?
         bookmarkTop - gap - firstOrbitTop : 0;
-    const nextShift = Math.round((Math.min(0, requestedShift) - PLANET_ORBIT_BASE_LIFT) * 100) / 100;
+    const layoutShift = Number.isFinite(bookmarkTop) ? Math.min(0, requestedShift) :
+        Math.max(0, Number(freeSpaceDrop) || 0);
+    const nextShift = Math.round((layoutShift - getPlanetOrbitBaseLift()) * 100) / 100;
     if (Math.abs(nextShift - planetOrbitShiftY) < .25) return planetOrbitShiftY;
     planetOrbitShiftY = nextShift;
     planetOrbitLayer?.style.setProperty("--planet-orbit-shift-y", `${nextShift}px`);

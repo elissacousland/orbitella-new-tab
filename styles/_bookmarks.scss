@@ -19,12 +19,13 @@ html {
 
         .bookmark-grid {
             --orbit-tile-scale: 1;
+            --orbit-title-scale: 1;
             --orbit-slot-gap: var(--grid-gap);
             position: relative;
             width: 100%;
             min-height: 0;
             isolation: isolate;
-            overflow: hidden;
+            overflow: visible;
             touch-action: none;
             cursor: default;
             overscroll-behavior: contain;
@@ -636,7 +637,7 @@ html {
                 max-width: min(calc(var(--orbit-cell-spacing, calc(100% + var(--orbit-slot-gap))) - 2px),
                     var(--bookmark-title-max-width, 999px));
                 transform: translateX(-50%);
-                font-size: 12px;
+                font-size: calc(12px * var(--orbit-title-scale));
                 line-height: 1.05;
                 letter-spacing: 0;
                 overflow-wrap: normal;
@@ -668,7 +669,7 @@ html {
         }
 
         &[data-tile-size="small"] .bookmark-grid .tile .tile-title {
-            font-size: 13px;
+            font-size: calc(13px * var(--orbit-title-scale));
             line-height: 1.08;
         }
 
@@ -1085,8 +1086,8 @@ html body .orbital-search-area {
 html body .bookmark-tooltip {
     position: fixed;
     z-index: 10020;
-    max-width: min(320px, calc(100vw - 16px));
-    padding: 6px 10px;
+    max-width: min(440px, calc(100vw - 20px));
+    padding: 7px 12px;
     overflow-wrap: anywhere;
     color: #f5f1fa;
     font-family: "Nunito", sans-serif;

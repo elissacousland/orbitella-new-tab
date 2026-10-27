@@ -90,6 +90,11 @@ const planetTextures = [
 ];
 assert(!/asteroid-belt|solar-surface|solar-corona-canvas/.test(dashboardHtml),
     "index.html: остались тяжёлые Canvas-слои космической сцены");
+assert(["320, height: 568", "768, height: 1024", "1366, height: 768",
+    "1920, height: 1080", "2560, height: 1080", "2560, height: 1440",
+    "3840, height: 2160"].every(viewport =>
+    read(path.join("tests", "browser-smoke.mjs")).includes(`width: ${viewport}`)),
+"browser-smoke.mjs: отсутствует полная матрица адаптивных размеров экрана");
 assert((dashboardHtml.match(/<dialog\b/g) || []).length ===
     (dashboardHtml.match(/<dialog\b[^>]*\baria-labelledby="[^"]+"/g) || []).length &&
     (dashboardHtml.match(/class="dialog-close"[^>]*\bdata-i18n-aria-label="close"/g) || []).length === 4 &&
@@ -182,29 +187,43 @@ assert(bookmarkUiScript.includes("function getBookmarkGroupTop") &&
     bookmarkUiScript.includes("new ResizeObserver(scheduleOrbitalResizeLayout)") &&
     bookmarkUiScript.includes("observe(bookmarkGrid)") &&
     backgroundScript.includes("function alignPlanetOrbitsAbove") &&
-    backgroundScript.includes("const PLANET_ORBIT_BASE_LIFT = 16") &&
-    backgroundScript.includes("Math.min(0, requestedShift) - PLANET_ORBIT_BASE_LIFT") &&
+    backgroundScript.includes("const PLANET_ORBIT_BASE_LIFT_RATIO = .018") &&
+    backgroundScript.includes("Math.min(window.innerWidth, window.innerHeight) * PLANET_ORBIT_BASE_LIFT_RATIO") &&
+    backgroundScript.includes("Math.max(0, Number(freeSpaceDrop) || 0)") &&
+    backgroundScript.includes("layoutShift - getPlanetOrbitBaseLift()") &&
+    bookmarkUiScript.includes("const responsiveExtent = Math.min(window.innerWidth, window.innerHeight)") &&
+    bookmarkUiScript.includes("responsiveExtent * PLANET_ORBIT_BOOKMARK_GAP_RATIO") &&
     backgroundScript.includes("--planet-orbit-shift-y") &&
-    sceneStyles.includes("--planet-orbit-shift-y: -16px") &&
-    compiledStyles.includes("--planet-orbit-shift-y: -16px") &&
+    sceneStyles.includes("--planet-orbit-shift-y: -1.8vh") &&
+    compiledStyles.includes("--planet-orbit-shift-y: -1.8vh") &&
     !bookmarkStyles.includes("transition: height") &&
     !heroStyles.includes('&[data-search-visible="false"] .hero-info'),
 "Раскладка: независимое положение солнца/закладок или адаптация орбит настроены неверно");
 assert(!settingsScript.includes("DASHBOARD_COMPACT_TILE_GAP") &&
     bookmarkStoreScript.includes("if (!settings.showBookmarkTitles) return 0") &&
-    bookmarkStoreScript.includes('titledOrbitGap: 0, compactOrbitGap: 0, orbitScale: .84') &&
-    bookmarkStoreScript.includes('titledGap: 12, compactGap: 10, titledOrbitGap: 7, compactOrbitGap: 8, orbitScale: .9') &&
+    bookmarkStoreScript.includes("titledOrbitScale: .84, compactOrbitScale: .72") &&
+    bookmarkStoreScript.includes("titledOrbitScale: .9, compactOrbitScale: .78") &&
     bookmarkStoreScript.includes("function getDashboardBookmarkOrbitScale()") &&
+    bookmarkStoreScript.includes("settings.showBookmarkTitles ? spacing.titledOrbitScale : spacing.compactOrbitScale") &&
+    bookmarkStoreScript.includes("geometry.bookmarkStep * spacing.titledOrbitScale") &&
     bookmarkStoreScript.includes("const minimumSlotSpacing = tileDiameter + spacing.titledGap") &&
     bookmarkStoreScript.includes("reach: visibleReach") &&
-    bookmarkUiScript.includes("const requestedGap = getDashboardBookmarkGap()") &&
-    bookmarkUiScript.includes("const orbitGap = getDashboardBookmarkOrbitGap()") &&
-    bookmarkUiScript.includes("const orbitScale = getDashboardBookmarkOrbitScale()") &&
+    bookmarkUiScript.includes("const requestedOrbitGap = getDashboardBookmarkOrbitGap()") &&
+    bookmarkUiScript.includes("scale: 1") &&
+    bookmarkUiScript.includes("titleScale: 1") &&
+    bookmarkUiScript.includes("gap: getDashboardBookmarkGap()") &&
+    bookmarkUiScript.includes("tileDiameter: baseTileDiameter") &&
     bookmarkUiScript.includes("const fixedStep = Math.min(maximumStep") &&
     bookmarkUiScript.includes("const firstLength = (totalLength - fixedStep * (capacity - 1)) / 2") &&
-    bookmarkUiScript.includes("tileDiameter + tileMetrics.gap") &&
+    bookmarkUiScript.includes("tileDiameter, tileMetrics.gap") &&
+    bookmarkUiScript.includes("const verticalOffsetY = 0") &&
+    bookmarkStoreScript.includes("const bottomReach = radiusX * Math.sin(Math.acos(bottomRatio))") &&
+    bookmarkStoreScript.includes("Math.min(bottomReach, sideReach)") &&
+    bookmarkUiScript.includes("const radiusX = orbitGeometry.bookmarkBaseRadius * compositionScale + orbitStep * arc") &&
+    bookmarkUiScript.includes("const orbitStep = (tileDiameter + labelRoom + orbitGap)") &&
+    !bookmarkUiScript.includes("function getAdaptiveTileMetrics") &&
     bookmarkUiScript.includes("--orbit-title-offset-x") &&
-    bookmarkUiScript.includes("tileDiameter + labelRoom + orbitGap") &&
+    bookmarkUiScript.includes("(tileDiameter + labelRoom + orbitGap)") &&
     bookmarkUiScript.includes("const dashboardGap = getDashboardBookmarkGap()") &&
     settingsScript.includes("languageChanged || tileSizeChanged || bookmarkTitlesChanged"),
 "Закладки: интервалы плиток и дуг не адаптируются к размеру и подписям");
@@ -331,20 +350,34 @@ assert(bookmarkStyles.includes("top: calc(100% + 3px + var(--orbit-title-offset-
     bookmarkStyles.includes("overflow-wrap: normal") &&
     bookmarkUiScript.includes('"tile-title--multi-word" : "tile-title--single-word"') &&
     bookmarkStoreScript.includes("const minimumSlotSpacing = tileDiameter + spacing.titledGap") &&
-    bookmarkStoreScript.includes("tileDiameter + titledLabelRoom + spacing.titledOrbitGap") &&
+    bookmarkStoreScript.includes("tileDiameter + titledLabelRoom + titledOrbitGap") &&
+    bookmarkStoreScript.includes("function getDashboardReachForCapacity") &&
+    bookmarkStoreScript.includes("function getDashboardMinimumArcCapacity") &&
     bookmarkStoreScript.includes("tileDiameter / 2 - 20") &&
-    bookmarkUiScript.includes("tileDiameter + labelRoom + orbitGap") &&
+    bookmarkUiScript.includes("(tileDiameter + labelRoom + orbitGap)") &&
     bookmarkUiScript.includes("const titleMetrics = new Map") &&
     bookmarkUiScript.includes("const titleRects = new Map") &&
     bookmarkUiScript.includes("const positionsByKey = new Map") &&
-    bookmarkUiScript.includes("for (let pass = 0; pass < 4; pass += 1)") &&
+    bookmarkUiScript.includes("for (let pass = 0; pass < positions.length; pass += 1)") &&
     bookmarkUiScript.includes("metric.naturalWidth <= point.spacing - 2") &&
     bookmarkUiScript.includes("point.titleOffsetY = offsetY") &&
     bookmarkUiScript.includes('setProperty("--orbit-title-offset-y"') &&
     bookmarkUiScript.includes('cell.querySelector(".tile:not(.empty-tile)")') &&
-    bookmarkUiScript.includes("viewportBottom - activeBottom") &&
-    bookmarkUiScript.includes("verticalShift = Math.min(0, verticalShift)") &&
-    bookmarkUiScript.includes("Math.min(widthScale, heightScale), .56, 1"),
+    bookmarkUiScript.includes("function getOrbitalSunBoundaryY") &&
+    bookmarkUiScript.includes("const safeShift = sunShifts.length ? Math.min(...sunShifts)") &&
+    bookmarkUiScript.includes("remainingVisualGap / 2") &&
+    bookmarkUiScript.includes("boundedSafeShift + proximityShift") &&
+    bookmarkUiScript.includes("function getBookmarkSafeViewportTop") &&
+    bookmarkUiScript.includes('document.querySelector(".hero-info")?.getBoundingClientRect()') &&
+    bookmarkUiScript.includes("getDashboardArcReach(arc) * compositionScale") &&
+    bookmarkUiScript.includes("orbitGeometry.bookmarkBaseRadius * compositionScale") &&
+    bookmarkUiScript.includes('setProperty("--orbit-title-scale"') &&
+    bookmarkStyles.includes("font-size: calc(13px * var(--orbit-title-scale))") &&
+    bookmarkUiScript.includes("function getCarouselSafeHeight") &&
+    bookmarkUiScript.includes('document.querySelector(".orbital-sun")?.getBoundingClientRect()') &&
+    bookmarkUiScript.includes("const getEntryBottom = ({ cell, point })") &&
+    bookmarkUiScript.includes("title.getBoundingClientRect().height") &&
+    bookmarkUiScript.includes("boundaryY - sunGap - getEntryBottom(entry)"),
 "Закладки: безопасные интервалы и адаптивный масштаб раскладки настроены неверно");
 assert(bookmarkStyles.includes("linear-gradient(148deg") &&
     bookmarkStyles.includes("--tile-surface-opacity: 100%") &&
@@ -390,15 +423,16 @@ assert(dialogStyles.includes("grid-auto-rows: calc(var(--tile-height) + var(--fo
     compiledStyles.includes("html body[data-tile-size=small] .folder-grid") &&
     compiledStyles.includes("html body .folder-grid .tile .tile-title--multi-word"),
 "Папки: закладки внутри папки не совпадают по размерам и подписям с дашбордом");
-assert(tileColorsScript.includes("const softSaturation = Math.min(.57, Math.max(.40") &&
-    tileColorsScript.includes("const softLightness = Math.min(.64, Math.max(.46") &&
-    tileColorsScript.includes("const tileFamilyVariety = {") &&
-    tileColorsScript.includes('blue: ["blue", "cyan", "violet", "green", "orange", "pink"]') &&
+assert(tileColorsScript.includes("const bookmarkPastelPalette = Object.freeze([") &&
+    ["#C57D9A", "#D8878A", "#E6A78B", "#E7CF73", "#EBDD96", "#B4C879",
+        "#83B783", "#98AD89", "#819BCB", "#AE96CD", "#9677B8", "#CE91B3"]
+        .every(color => tileColorsScript.includes(color)) &&
+    tileColorsScript.includes("const neutralPastelOrder = Object.freeze") &&
     tileColorsScript.includes('const stableKey = `${host}:${bookmarkId}`') &&
-    tileColorsScript.includes('getTextHash(`${stableKey}:family`)') &&
-    tileColorsScript.includes('getTextHash(`${stableKey}:shade`)') &&
+    tileColorsScript.includes("function getHueDistance") &&
+    tileColorsScript.includes("getHueDistance(iconHue, candidateHue)") &&
+    tileColorsScript.includes("base: color") &&
     tileColorsScript.includes("const FAVICON_SPHERE_SCALE = .94") &&
-    tileColorsScript.includes("Math.abs(iconLightness - tileLightness) < .18") &&
     tileColorsScript.includes("faviconAppearanceV7") &&
     tileColorsScript.includes('function getFaviconVisualScale(icon, pageUrl = "")') &&
     tileColorsScript.includes("function isMegaHost(pageUrl)") &&
@@ -444,14 +478,19 @@ assert((dashboardHtml.match(/class="folder-color-dot"/g) || []).length === 3 &&
     overlayStyles.includes("button.folder-color-dot") &&
     overlayStyles.includes('&[aria-checked="true"]'),
 "Папки: выбор одного из трёх цветов или его сохранение настроены неверно");
-assert(bookmarkUiScript.includes("const BOOKMARK_ORBIT_LIFT = 37") &&
-    bookmarkUiScript.includes("const SMALL_BOOKMARK_ORBIT_LIFT = 18") &&
-    bookmarkUiScript.includes("const LARGE_COMPACT_ARC_DROP = 38") &&
-    bookmarkUiScript.includes("SMALL_BOOKMARK_ORBIT_LIFT + 20") &&
-    bookmarkUiScript.includes('settings.showBookmarkTitles ? BOOKMARK_ORBIT_LIFT - 12 : BOOKMARK_ORBIT_LIFT - 20') &&
-    bookmarkUiScript.includes("return LARGE_COMPACT_ARC_DROP") &&
-    bookmarkUiScript.includes("gridRect.top - orbitLift"),
+assert(!bookmarkUiScript.includes("BOOKMARK_ORBIT_LIFT_RATIOS") &&
+    bookmarkUiScript.includes("let centerY = orbitGeometry.centerY - gridRect.top") &&
+    bookmarkUiScript.includes("function getOrbitalSunCollisionGeometry") &&
+    bookmarkUiScript.includes("geometry.centerY += verticalShift"),
 "bookmarks-ui.js: орбиты закладок не подняты над солнцем");
+assert(heroStyles.includes("padding: 6vh 0 0") &&
+    heroStyles.includes("margin-bottom: 1.5vh") &&
+    !heroStyles.includes("translateY(-54px)") &&
+    !responsiveStyles.includes("translateY(-28px)") &&
+    !responsiveStyles.includes("translateY(-14px)") &&
+    compiledStyles.includes("padding: 6vh 0 0") &&
+    compiledStyles.includes("margin-bottom: 1.5vh"),
+"Часы: верхнее положение должно быть пропорциональным и без отрицательного смещения");
 assert(bookmarkUiScript.includes('tile.setAttribute("draggable", "true")') &&
     bookmarkUiScript.includes("const FOLDER_DROP_EDGE_ZONE = .06") &&
     bookmarkUiScript.includes("const FOLDER_DROP_STICKY_EDGE_ZONE = .02") &&
@@ -486,6 +525,8 @@ assert(bookmarkUiScript.includes('bookmarkTooltip.className = "bookmark-tooltip"
     bookmarkUiScript.includes("hideBookmarkTooltip(true);") &&
     !bookmarkUiScript.includes("tile.title = bookmark.title") &&
     bookmarkStyles.includes("html body .bookmark-tooltip") &&
+    bookmarkStyles.includes("max-width: min(440px, calc(100vw - 20px))") &&
+    bookmarkUiScript.includes("const screenGap = 10") &&
     bookmarkStyles.includes("background: rgba(36, 32, 51, .94)") &&
     bookmarkStyles.includes("transition: opacity 180ms ease") &&
     bookmarkStyles.includes("pointer-events: none") &&
@@ -631,6 +672,45 @@ assert(responsiveCompactMetrics.every(({ titled, compact }) =>
     compact.every((metrics, arc) => metrics.capacity === titled[arc].capacity &&
         metrics.reach === titled[arc].reach && metrics.radiusX === titled[arc].radiusX)),
 "bookmark-store.js: адаптивные интервалы не должны менять набор слотов дуги");
+const insertionPlans = vm.runInContext(`(() => {
+    settings.tileSize = "small";
+    settings.showBookmarkTitles = true;
+    innerWidth = 1280;
+    innerHeight = 720;
+    const originalLayout = [
+        { id: "a", order: 0, arc: 0, slot: 1 },
+        { id: "b", order: 1, arc: 0, slot: 2 },
+        { id: "c", order: 2, arc: 0, slot: 3 },
+        { id: "d", order: 3, arc: 0, slot: 4 }
+    ];
+    const readPlan = (sourceId, targetId, afterTarget) => {
+        layout = originalLayout.map(item => ({ ...item }));
+        const plan = getDashboardInsertionPlan(sourceId, targetId, afterTarget);
+        return {
+            positions: Object.fromEntries([...plan.positions].map(([id, position]) =>
+                [id, { arc: position.arc, slot: position.slot, order: position.order }])),
+            packedSlots: getDashboardPackedSlots(originalLayout.length)
+        };
+    };
+    return {
+        forward: readPlan("a", "d", false),
+        reverse: readPlan("d", "a", true)
+    };
+})()`, bookmarkStoreContext);
+const hasPackedInsertionOrder = (plan, orderedIds) => orderedIds.every((id, order) => {
+    const actual = plan.positions[id];
+    const expected = plan.packedSlots[order];
+    return actual.order === order && actual.arc === expected.arc && actual.slot === expected.slot;
+});
+assert(hasPackedInsertionOrder(insertionPlans.forward, ["b", "c", "a", "d"]) &&
+    hasPackedInsertionOrder(insertionPlans.reverse, ["a", "d", "b", "c"]),
+"bookmark-store.js: перенос на занятую позицию должен сдвигать диапазон, а не менять две иконки местами");
+assert(bookmarkUiScript.includes("async function moveItemWithinFolder") &&
+    bookmarkUiScript.includes("destinationIndex--") &&
+    bookmarkUiScript.includes("destination.index = Math.max(0, destinationIndex)") &&
+    bookmarkUiScript.includes("resolveFolderDropIntent(event)") &&
+    bookmarkUiScript.includes("showInsertionPreview(intent.containerId, intent.targetId"),
+"Папки: перестановка должна вставлять элемент со сдвигом соседей");
 vm.runInContext("settings.tileSize = 'extra-small'; settings.showBookmarkTitles = true",
     bookmarkStoreContext);
 const extraSmallSpacing = vm.runInContext(
@@ -651,9 +731,8 @@ const redHsl = tileColorsContext.rgbToHsl(255, 0, 0);
 assert(redHsl[0] === 0 && redHsl[1] === 1 && redHsl[2] === .5 &&
     tileColorsContext.getTextHash("abc") === 96354 &&
     tileColorsContext.getHostAppearance("https://www.youtube.com/watch?v=1")?.color === "#c72d3a" &&
-    tileColorsContext.getHostAppearance("https://www.youtube.com/watch?v=1")?.lockedFamily === true &&
     tileColorsContext.getHostAppearance("https://chatgpt.com/")?.tone === "dark" &&
-    tileColorsContext.getHostAppearance("https://chatgpt.com/")?.lockedFamily === false &&
+    tileColorsContext.getHueDistance(350, 10) === 20 &&
     tileColorsContext.getFaviconVisualScale({}, "https://mega.nz/") === .846,
 "tile-colors.js: преобразование цветов, стабильный хеш или известные палитры изменились");
 

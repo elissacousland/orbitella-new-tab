@@ -31,6 +31,12 @@ let dragPreviewPlaceholder = null;
 
 let dragDashboardSnapshot = null;
 
+let dragFolderSnapshot = null;
+
+let dragPreviewCandidate = null;
+
+const DRAG_PREVIEW_SETTLE_MS = 110;
+
 // предпросмотр перетаскивания
 function clearDragIndicators() {
     document.querySelectorAll(".drag-over").forEach(element => element.classList.remove("drag-over"));
@@ -50,11 +56,24 @@ function getDashboardSnapshot() {
         return element ? {
             id: item.id,
             element,
-            rect: element.getBoundingClientRect()
+            rect: element.getBoundingClientRect(),
+            angle: Number(element.dataset.orbitAngle)
         } : null;
     }).filter(Boolean);
     dragDashboardSnapshot = { items };
     return dragDashboardSnapshot;
+}
+
+function getFolderSnapshot(containerId) {
+    if (dragFolderSnapshot?.containerId === containerId) return dragFolderSnapshot;
+    const items = [...folderGrid.querySelectorAll(":scope > .tile[data-id]")]
+        .map(element => ({
+            id: element.dataset.id,
+            element,
+            rect: element.getBoundingClientRect()
+        }));
+    dragFolderSnapshot = { containerId, items };
+    return dragFolderSnapshot;
 }
 
 function clearSortPreview() {
@@ -76,9 +95,68 @@ function resetDragPreview() {
     clearDragIndicators();
     dragPreviewIntent = null;
     dragDashboardSnapshot = null;
+    dragFolderSnapshot = null;
+    dragPreviewCandidate = null;
     carouselState.dragAutoX = 0;
     carouselState.dragAutoY = 0;
     bookmarkGrid?.classList.remove("bookmark-grid--drag-active");
+}
+
+function getSnapshotDistance(clientX, clientY, rect) {
+    const distanceX = clientX < rect.left ? rect.left - clientX :
+        clientX > rect.right ? clientX - rect.right : 0;
+    const distanceY = clientY < rect.top ? rect.top - clientY :
+        clientY > rect.bottom ? clientY - rect.bottom : 0;
+    const centerX = (rect.left + rect.right) / 2;
+    const centerY = (rect.top + rect.bottom) / 2;
+    return Math.hypot(distanceX, distanceY) + Math.hypot(clientX - centerX,
+        clientY - centerY) * .001;
+}
+
+function getNearestSnapshotItem(snapshot, clientX, clientY) {
+    return snapshot.items
+        .filter(item => item.id !== draggingId)
+        .reduce((nearest, item) => {
+            const distance = getSnapshotDistance(clientX, clientY, item.rect);
+            return !nearest || distance < nearest.distance ? { item, distance } : nearest;
+        }, null)?.item || null;
+}
+
+function isPointInsideSnapshotItem(item, clientX, clientY, inset = 0) {
+    return Boolean(item && clientX >= item.rect.left + inset && clientX <= item.rect.right - inset &&
+        clientY >= item.rect.top + inset && clientY <= item.rect.bottom - inset);
+}
+
+function getSnapshotDropPosition(event, item, orbital = false) {
+    const bounds = item.rect;
+    if (!bounds.width) return .5;
+    const offsetX = event.clientX - (bounds.left + bounds.width / 2);
+    const offsetY = event.clientY - (bounds.top + bounds.height / 2);
+    if (!orbital || !Number.isFinite(item.angle)) {
+        return clampOrbitalValue(.5 + offsetX / bounds.width, 0, 1);
+    }
+    const tangentProjection = offsetX * Math.cos(item.angle) + offsetY * Math.sin(item.angle);
+    return clampOrbitalValue(.5 + tangentProjection / bounds.width, 0, 1);
+}
+
+function shouldApplyDragPreview(containerId, targetId, action) {
+    const key = `${containerId}:${targetId}:${action}`;
+    if (dragPreviewIntent?.key === key) {
+        dragPreviewCandidate = null;
+        return false;
+    }
+    if (!dragPreviewIntent) {
+        dragPreviewCandidate = null;
+        return true;
+    }
+    const now = performance.now();
+    if (dragPreviewCandidate?.key !== key) {
+        dragPreviewCandidate = { key, since: now };
+        return false;
+    }
+    if (now - dragPreviewCandidate.since < DRAG_PREVIEW_SETTLE_MS) return false;
+    dragPreviewCandidate = null;
+    return true;
 }
 
 function finishDragSession() {
@@ -261,27 +339,103 @@ function setDragPreviewAction(containerId, targetId, action) {
     };
 }
 
+function resolveDashboardDropIntent(event) {
+    const source = draggingId ? findBookmark(draggingId) : null;
+    if (!source) return null;
+    const snapshot = getDashboardSnapshot();
+    const sourceItem = snapshot.items.find(item => item.id === source.id);
+    if (isPointInsideSnapshotItem(sourceItem, event.clientX, event.clientY, 4)) return null;
+    const targetItem = getNearestSnapshotItem(snapshot, event.clientX, event.clientY);
+    if (!targetItem) return null;
+    const targetBookmark = findBookmark(targetItem.id);
+    if (!targetBookmark || targetBookmark.id === source.id) return null;
+    const sequencePosition = getSnapshotDropPosition(event, targetItem, true);
+    const isFolderTarget = Array.isArray(targetBookmark.children) &&
+        !folderContains(source, targetBookmark.id);
+    return {
+        containerId: "dashboard",
+        targetId: targetBookmark.id,
+        action: getStableDropAction("dashboard", targetBookmark.id,
+            isFolderTarget, sequencePosition)
+    };
+}
+
+function resolveFolderDropIntent(event) {
+    const containerId = folderPath.at(-1);
+    const source = draggingId ? findBookmark(draggingId) : null;
+    if (!containerId || !source) return null;
+    const snapshot = getFolderSnapshot(containerId);
+    const sourceItem = snapshot.items.find(item => item.id === source.id);
+    if (isPointInsideSnapshotItem(sourceItem, event.clientX, event.clientY, 4)) return null;
+    const targetItem = getNearestSnapshotItem(snapshot, event.clientX, event.clientY);
+    if (!targetItem) return null;
+    const targetBookmark = findBookmark(targetItem.id);
+    if (!targetBookmark || targetBookmark.id === source.id) return null;
+    const sequencePosition = getSnapshotDropPosition(event, targetItem);
+    const isFolderTarget = Array.isArray(targetBookmark.children) &&
+        !folderContains(source, targetBookmark.id);
+    return {
+        containerId,
+        targetId: targetBookmark.id,
+        action: getStableDropAction(containerId, targetBookmark.id,
+            isFolderTarget, sequencePosition)
+    };
+}
+
+function applyResolvedDragPreview(intent) {
+    if (!intent || !shouldApplyDragPreview(intent.containerId, intent.targetId, intent.action)) return;
+    clearDragIndicators();
+    if (intent.action === "inside") {
+        clearSortPreview();
+        const previewRoot = intent.containerId === "dashboard" ? bookmarkGrid : folderGrid;
+        const targetTile = [...previewRoot.querySelectorAll(".tile[data-id]")]
+            .find(tile => tile.dataset.id === intent.targetId);
+        getTileSlot(targetTile)?.classList.add("drag-over");
+    } else {
+        showInsertionPreview(intent.containerId, intent.targetId, intent.action === "after");
+    }
+    setDragPreviewAction(intent.containerId, intent.targetId, intent.action);
+}
+
+async function commitResolvedDrop(intent) {
+    const sourceId = draggingId;
+    const source = sourceId ? findBookmark(sourceId) : null;
+    finishDragSession();
+    if (!intent || !source || sourceId === intent.targetId) return;
+    if (intent.action === "inside") {
+        await moveItemIntoFolder(sourceId, intent.targetId);
+        return;
+    }
+    const afterTarget = intent.action === "after";
+    if (intent.containerId === "dashboard") {
+        if (layout.some(item => item.id === sourceId)) {
+            await moveBookmark(sourceId, intent.targetId, undefined, undefined, afterTarget);
+        } else {
+            await moveItemToDashboard(sourceId, intent.targetId, undefined, undefined, afterTarget);
+        }
+        return;
+    }
+    await moveItemWithinFolder(sourceId, intent.containerId, intent.targetId, afterTarget);
+}
+
+function handleDashboardDragOver(event) {
+    if (!draggingId) return false;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    updateCarouselDragAutoScroll(event.clientX, event.clientY);
+    applyResolvedDragPreview(resolveDashboardDropIntent(event));
+    return true;
+}
+
+async function handleDashboardDrop(event) {
+    if (!draggingId) return;
+    event.preventDefault();
+    await commitResolvedDrop(resolveDashboardDropIntent(event));
+}
+
 const bookmarkGrid = document.querySelector(".bookmark-grid");
-const BOOKMARK_ORBIT_LIFT = 37;
-const SMALL_BOOKMARK_ORBIT_LIFT = 18;
-const LARGE_COMPACT_ARC_DROP = 38;
 
-function getBookmarkOrbitLift() {
-    if (settings.tileSize === "extra-small") {
-        return settings.showBookmarkTitles ? SMALL_BOOKMARK_ORBIT_LIFT :
-            SMALL_BOOKMARK_ORBIT_LIFT + 20;
-    }
-    if (settings.tileSize === "small") {
-        return settings.showBookmarkTitles ? BOOKMARK_ORBIT_LIFT - 12 : BOOKMARK_ORBIT_LIFT - 20;
-    }
-    return BOOKMARK_ORBIT_LIFT;
-}
-
-function getBookmarkArcVerticalOffset(arc) {
-    if (settings.tileSize !== "small" || settings.showBookmarkTitles) return 0;
-    return LARGE_COMPACT_ARC_DROP;
-}
-const PLANET_ORBIT_BOOKMARK_GAP = 20;
+const PLANET_ORBIT_BOOKMARK_GAP_RATIO = .022;
 
 const bookmarkTooltip = document.createElement("div");
 bookmarkTooltip.className = "bookmark-tooltip";
@@ -297,7 +451,7 @@ let bookmarkTooltipHideTimer = 0;
 function positionBookmarkTooltip(tile) {
     const tileBounds = tile.getBoundingClientRect();
     const tooltipBounds = bookmarkTooltip.getBoundingClientRect();
-    const screenGap = 8;
+    const screenGap = 10;
     const tileGap = 10;
     const maximumLeft = Math.max(screenGap, window.innerWidth - tooltipBounds.width - screenGap);
     const left = Math.min(maximumLeft, Math.max(screenGap,
@@ -410,6 +564,23 @@ function snapToDevicePixel(value) {
     return Math.round(value * pixelRatio) / pixelRatio;
 }
 
+function getCarouselViewportPadding() {
+    return Math.max(2, Math.min(window.innerWidth, window.innerHeight) * .015);
+}
+
+function getBookmarkSafeViewportTop() {
+    const heroBounds = document.querySelector(".hero-info")?.getBoundingClientRect();
+    const contentGap = Math.min(window.innerWidth, window.innerHeight) * .012;
+    return Math.max(getCarouselViewportPadding(),
+        Number.isFinite(heroBounds?.bottom) ? heroBounds.bottom + contentGap : 0);
+}
+
+function getScaledBookmarkLabelRoom(labelRoom, titleScale) {
+    if (labelRoom <= 0) return 0;
+    const fixedTitleGap = 3;
+    return fixedTitleGap + Math.max(0, labelRoom - fixedTitleGap) * titleScale;
+}
+
 function syncAutomaticArcCapacity() {
     const nextCapacity = getDashboardCapacitySignature();
     const nextLayoutKey = getDashboardLayoutStorageKey(settings.tileSize, nextCapacity);
@@ -435,24 +606,14 @@ function syncAutomaticArcCapacity() {
     return true;
 }
 
-function getAdaptiveTileMetrics(arcCount, width, height, baseTileDiameter) {
-    const foundationCapacity = getDashboardArcCapacity(0);
-    const requestedGap = getDashboardBookmarkGap();
-    const availableWidth = Math.max(baseTileDiameter, width - 20);
-    const availableHeight = Math.max(baseTileDiameter, height - 12);
-    const compactWidth = foundationCapacity * baseTileDiameter +
-        (foundationCapacity - 1) * requestedGap;
-    const widthScale = compactWidth > availableWidth ?
-        (availableWidth - (foundationCapacity - 1) * requestedGap) /
-            (foundationCapacity * baseTileDiameter) : 1;
-    const nominalHeight = baseTileDiameter * (arcCount + 1.35);
-    const heightScale = nominalHeight > availableHeight ? availableHeight / nominalHeight : 1;
-    const scale = clampOrbitalValue(Math.min(widthScale, heightScale), .56, 1);
-    return {
-        scale,
-        gap: requestedGap,
-        tileDiameter: baseTileDiameter * scale
-    };
+function getCarouselSafeHeight(gridRect, viewportHeight, baseTileDiameter) {
+    const sunBounds = document.querySelector(".orbital-sun")?.getBoundingClientRect();
+    const viewportTop = getBookmarkSafeViewportTop();
+    const viewportBottom = gridRect.top + viewportHeight;
+    const sunGap = clampOrbitalValue(baseTileDiameter * .12, 6, 12) + 2;
+    const safeBottom = sunBounds?.width && sunBounds.height ?
+        Math.min(viewportBottom, sunBounds.top - sunGap) : viewportBottom;
+    return Math.max(baseTileDiameter * .12, safeBottom - gridRect.top);
 }
 
 function getEvenlySpacedEllipseAngles(radiusX, radiusY, halfSpan, capacity, slotStep) {
@@ -492,30 +653,63 @@ function getEvenlySpacedEllipseAngles(radiusX, radiusY, halfSpan, capacity, slot
     return angles;
 }
 
-function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiveArcCount = arcCount) {
+function buildCarouselOrbitLayout(arcCount, orbitGeometry, centerX, centerY,
+    orbitStep, tileDiameter, slotGap, compositionScale = 1) {
+    const arcs = [];
+    const points = [];
+    for (let arc = 0; arc < arcCount; arc += 1) {
+        const capacity = getDashboardArcCapacity(arc);
+        const halfSlotWidth = getDashboardArcReach(arc) * compositionScale;
+        const verticalOffsetY = 0;
+        const radiusX = orbitGeometry.bookmarkBaseRadius * compositionScale + orbitStep * arc;
+        const radiusY = radiusX * orbitGeometry.perspective;
+        const halfSpan = Math.asin(clampOrbitalValue(halfSlotWidth / radiusX, -.995, .995));
+        arcs.push({ arc, capacity, radiusX, radiusY, halfSpan, verticalOffsetY });
+        const angles = getEvenlySpacedEllipseAngles(radiusX, radiusY, halfSpan, capacity,
+            tileDiameter + slotGap);
+        angles.forEach((angle, slot) => {
+            const point = orbitalSystem.getPoint(radiusX, angle, orbitGeometry, centerX, centerY);
+            points.push({
+                arc,
+                slot,
+                angle,
+                ...point,
+                y: point.y + verticalOffsetY,
+                verticalOffsetY
+            });
+        });
+    }
+    return { arcs, points };
+}
+
+function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter) {
     const width = Math.max(baseTileDiameter + 24, availableWidth);
     const gridRect = bookmarkGrid.getBoundingClientRect();
     const main = bookmarkGrid.closest("main");
     const bottomReserve = Math.max(0, parseFloat(getComputedStyle(main).paddingBottom) || 0);
-    const availableHeight = Math.max(baseTileDiameter + 70,
-        window.innerHeight - gridRect.top - bottomReserve - 2);
-    const tileMetrics = getAdaptiveTileMetrics(adaptiveArcCount, width, availableHeight, baseTileDiameter);
-    const tileDiameter = tileMetrics.tileDiameter;
     const orbitGeometry = orbitalSystem.readGeometry();
-    const widthPressure = clampOrbitalValue(width /
-        Math.max(width, getDashboardArcCapacity(0) *
-            (baseTileDiameter + 5)), .82, 1);
-    const labelRoom = getDashboardBookmarkTitleRoom();
-    const orbitGap = getDashboardBookmarkOrbitGap();
-    const orbitScale = getDashboardBookmarkOrbitScale();
-    const orbitLift = getBookmarkOrbitLift();
-    const minimumOrbitStep = (tileDiameter + labelRoom + orbitGap) /
-        Math.max(.65, orbitGeometry.perspective);
-    const orbitStep = Math.max(minimumOrbitStep,
-        orbitGeometry.bookmarkStep * widthPressure * orbitScale);
+    const requestedLabelRoom = getDashboardBookmarkTitleRoom();
+    const requestedOrbitGap = getDashboardBookmarkOrbitGap();
+    const viewportHeight = Math.max(baseTileDiameter * .12,
+        window.innerHeight - gridRect.top - bottomReserve - 2);
+    const availableHeight = getCarouselSafeHeight(gridRect, viewportHeight, baseTileDiameter);
     const centerX = orbitGeometry.centerX - gridRect.left;
-    let centerY = orbitGeometry.centerY - gridRect.top - orbitLift;
-    const arcs = [];
+    let centerY = orbitGeometry.centerY - gridRect.top;
+    const tileMetrics = {
+        scale: 1,
+        titleScale: 1,
+        gap: getDashboardBookmarkGap(),
+        tileDiameter: baseTileDiameter
+    };
+    const tileDiameter = tileMetrics.tileDiameter;
+    const labelRoom = getScaledBookmarkLabelRoom(requestedLabelRoom, 1);
+    const orbitGap = settings.showBookmarkTitles ?
+        Math.max(requestedOrbitGap, tileMetrics.gap * .35) : requestedOrbitGap;
+    const orbitStep = (tileDiameter + labelRoom + orbitGap) /
+        Math.max(.65, orbitGeometry.perspective);
+    const orbitLayout = buildCarouselOrbitLayout(arcCount, orbitGeometry, centerX, centerY,
+        orbitStep, tileDiameter, tileMetrics.gap, 1);
+    const arcs = orbitLayout.arcs;
     const slotMap = new Map();
     const titleMetrics = new Map([...bookmarkGrid.querySelectorAll(":scope > .grid-cell")]
         .map(cell => {
@@ -530,55 +724,43 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
                 naturalWidth: title?.scrollWidth || 0
             }];
         }));
-    let previousRadius = 0;
-
-    for (let arc = 0; arc < arcCount; arc += 1) {
-        const capacity = getDashboardArcCapacity(arc);
-        const halfSlotWidth = getDashboardArcReach(arc);
-        const verticalOffsetY = getBookmarkArcVerticalOffset(arc);
-        const radiusX = Math.max(orbitGeometry.bookmarkBaseRadius + orbitStep * arc,
-            previousRadius ? previousRadius + orbitStep : 0);
-        const radiusY = radiusX * orbitGeometry.perspective;
-        const halfSpan = Math.asin(clampOrbitalValue(halfSlotWidth / radiusX, -.995, .995));
-        const arcGeometry = { arc, capacity, radiusX, radiusY, halfSpan, verticalOffsetY };
-        previousRadius = radiusX;
-        arcs.push(arcGeometry);
-        const angles = getEvenlySpacedEllipseAngles(radiusX, radiusY, halfSpan, capacity,
-            tileDiameter + tileMetrics.gap);
-        const points = angles.map(angle => {
-            const point = orbitalSystem.getPoint(radiusX, angle, orbitGeometry, centerX, centerY);
-            return { angle, ...point, y: point.y + verticalOffsetY };
-        });
+    const pointsByArc = new Map();
+    orbitLayout.points.forEach(point => {
+        if (!pointsByArc.has(point.arc)) pointsByArc.set(point.arc, []);
+        pointsByArc.get(point.arc).push(point);
+    });
+    pointsByArc.forEach(points => {
         points.forEach((point, slot) => {
             const neighbors = [points[slot - 1], points[slot + 1]].filter(Boolean);
             const horizontalDistances = neighbors.map(neighbor =>
                 Math.abs(point.x - neighbor.x));
-            const responsiveLabelInset = (1 - tileMetrics.scale) * 14;
             const horizontalSpacing = Math.min(...horizontalDistances.filter(Number.isFinite));
             const titleTop = point.y + tileDiameter / 2 + 3;
-            const titleMetric = titleMetrics.get(getDashboardSlotKey(arc, slot));
+            const titleMetric = titleMetrics.get(getDashboardSlotKey(point.arc, slot));
             const titleBottom = titleTop + (titleMetric?.lineCount || 2) *
                 (titleMetric?.lineHeight || 13);
+            const minimumLabelSpacing = 12;
             const collisionSafeWidth = neighbors.reduce((safeWidth, neighbor) => {
                 const overlapsVertically = titleTop < neighbor.y + tileDiameter / 2 &&
                     titleBottom > neighbor.y - tileDiameter / 2;
                 if (!overlapsVertically) return safeWidth;
                 const clearance = Math.abs(point.x - neighbor.x) - tileDiameter / 2 - 3;
-                return Math.min(safeWidth, Math.max(12, clearance * 2));
+                return Math.min(safeWidth, Math.max(minimumLabelSpacing, clearance * 2));
             }, Number.POSITIVE_INFINITY);
-            const labelSpacing = Math.max(12, Math.min(
-                horizontalSpacing - responsiveLabelInset,
+            const labelSpacing = Math.max(minimumLabelSpacing, Math.min(
+                horizontalSpacing,
                 collisionSafeWidth));
-            slotMap.set(getDashboardSlotKey(arc, slot), {
-                arc, slot, angle: point.angle, x: point.x, y: point.y, tangent: point.tangent,
-                spacing: labelSpacing, titleOffsetX: 0, verticalOffsetY,
+            slotMap.set(getDashboardSlotKey(point.arc, slot), {
+                arc: point.arc, slot, angle: point.angle, x: point.x, y: point.y,
+                tangent: point.tangent, spacing: labelSpacing, titleOffsetX: 0,
+                verticalOffsetY: point.verticalOffsetY,
                 scale: 1, opacity: 1
             });
         });
-    }
+    });
     const positions = [...slotMap.values()];
     const padding = 12;
-    if (settings.tileSize === "small") {
+    if (settings.showBookmarkTitles) {
         const intersects = (first, second) =>
             Math.min(first.right, second.right) - Math.max(first.left, second.left) > -1 &&
             Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > -1;
@@ -599,7 +781,8 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
             const key = getDashboardSlotKey(point.arc, point.slot);
             const metric = titleMetrics.get(key);
             if (!metric?.naturalWidth) return [];
-            const titleWidth = Math.min(90, Math.max(10, point.spacing - 2));
+            const minimumTitleWidth = Math.max(2, 10 * tileMetrics.titleScale);
+            const titleWidth = Math.min(90, Math.max(minimumTitleWidth, point.spacing - 2));
             return [[key, getTitleRect(point, metric, titleWidth)]];
         }));
 
@@ -625,7 +808,7 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
 
         const positionsByKey = new Map(positions.map(point =>
             [getDashboardSlotKey(point.arc, point.slot), point]));
-        for (let pass = 0; pass < 4; pass += 1) {
+        for (let pass = 0; pass < positions.length; pass += 1) {
             let adjusted = false;
             const entries = [...titleRects];
             for (let index = 0; index < entries.length && !adjusted; index += 1) {
@@ -667,32 +850,9 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
         left: Math.min(...positions.map(point => point.x - tileDiameter / 2)),
         right: Math.max(...positions.map(point => point.x + tileDiameter / 2)),
         top: Math.min(...positions.map(point => point.y - tileDiameter / 2)),
-        bottom: Math.max(...positions.map(point => point.y + tileDiameter / 2 + labelRoom))
+        bottom: Math.max(...positions.map(point => point.y + tileDiameter / 2 + labelRoom +
+            Math.max(0, point.titleOffsetY || 0)))
     };
-    const occupiedPositions = [...bookmarkGrid.querySelectorAll(":scope > .grid-cell")]
-        .filter(cell => cell.querySelector(".tile:not(.empty-tile)") &&
-            !cell.classList.contains("grid-cell--reserve"))
-        .map(cell => slotMap.get(getDashboardSlotKey(
-            Number(cell.dataset.previewArc ?? cell.dataset.arc),
-            Number(cell.dataset.previewSlot ?? cell.dataset.slot))))
-        .filter(Boolean);
-    const activePositions = positions.filter(point => point.arc < adaptiveArcCount);
-    const visiblePositions = occupiedPositions.length ? occupiedPositions : positions;
-    const visibleTop = Math.min(...visiblePositions.map(point => point.y - tileDiameter / 2));
-    const activeBottom = Math.max(...activePositions.map(point =>
-        point.y - point.verticalOffsetY + tileDiameter / 2 + labelRoom));
-    const viewportTop = -gridRect.top + padding;
-    const viewportBottom = window.innerHeight - gridRect.top - bottomReserve - padding - orbitLift;
-    let verticalShift = viewportBottom - activeBottom;
-    if (verticalShift < 0) {
-        verticalShift = Math.max(verticalShift, -Math.max(0, visibleTop - viewportTop));
-    }
-    if (Math.abs(verticalShift) >= .25) {
-        centerY += verticalShift;
-        positions.forEach(point => point.y += verticalShift);
-        bounds.top += verticalShift;
-        bounds.bottom += verticalShift;
-    }
     const panBounds = {
         minX: Math.min(0, width - padding - bounds.right),
         maxX: Math.max(0, padding - bounds.left),
@@ -704,7 +864,8 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
         tileDiameter / 2 + Math.max(26, tileDiameter * .35), orbitGeometry);
     return {
         width, height: Math.floor(availableHeight), tileDiameter, baseTileDiameter,
-        tileScale: tileMetrics.scale, gap: tileMetrics.gap, centerX, centerY,
+        tileScale: tileMetrics.scale, titleScale: tileMetrics.titleScale,
+        gap: tileMetrics.gap, centerX, centerY,
         viewportCenterX: orbitGeometry.centerX,
         viewportCenterY: orbitGeometry.centerY,
         orbitStep,
@@ -715,6 +876,58 @@ function getCarouselGeometry(arcCount, availableWidth, baseTileDiameter, adaptiv
         bounds,
         panBounds
     };
+}
+
+function getOrbitalSunCollisionGeometry() {
+    const area = document.querySelector(".orbital-search-area");
+    const sun = area?.querySelector(".orbital-sun");
+    if (!area || !sun) return null;
+    const styles = getComputedStyle(area);
+    const centerX = parseFloat(styles.getPropertyValue("--search-orbit-x"));
+    const curveTop = parseFloat(styles.getPropertyValue("--search-curve-top")) - 5;
+    const curveWidth = parseFloat(styles.getPropertyValue("--search-curve-width"));
+    const curveHeight = parseFloat(styles.getPropertyValue("--search-curve-height"));
+    const bounds = sun.getBoundingClientRect();
+    if (![centerX, curveTop, curveWidth, curveHeight].every(Number.isFinite) ||
+        !bounds.width || !bounds.height) return null;
+    // В исходном изображении Солнца лучи начинаются не у края файла: прозрачные поля
+    // занимают около 11% с каждой стороны. Привязываем закладки к видимому диску,
+    // а не к прозрачной области, сохраняя те же пропорции на любом размере окна.
+    const visibleTextureBounds = {
+        left: .11,
+        top: .109,
+        right: .89,
+        bottom: .883
+    };
+    const visibleCenterY = curveTop + curveWidth *
+        (visibleTextureBounds.top + visibleTextureBounds.bottom) / 2;
+    const visibleRadiusX = curveWidth *
+        (visibleTextureBounds.right - visibleTextureBounds.left) / 2;
+    const visibleRadiusY = curveWidth *
+        (visibleTextureBounds.bottom - visibleTextureBounds.top) / 2;
+    return {
+        centerX,
+        top: visibleCenterY - visibleRadiusY,
+        radiusX: visibleRadiusX,
+        radiusY: visibleRadiusY,
+        bounds: {
+            left: Math.max(bounds.left, centerX - visibleRadiusX),
+            right: Math.min(bounds.right, centerX + visibleRadiusX),
+            top: Math.max(bounds.top, visibleCenterY - visibleRadiusY),
+            bottom: Math.min(bounds.bottom, visibleCenterY + visibleRadiusY)
+        }
+    };
+}
+
+function getOrbitalSunBoundaryY(sunGeometry, left, right) {
+    if (!sunGeometry || right <= sunGeometry.bounds.left || left >= sunGeometry.bounds.right) {
+        return Number.POSITIVE_INFINITY;
+    }
+    const closestX = clampOrbitalValue(sunGeometry.centerX, left, right);
+    const normalizedX = clampOrbitalValue(
+        Math.abs(closestX - sunGeometry.centerX) / Math.max(1, sunGeometry.radiusX), 0, 1);
+    return sunGeometry.top + sunGeometry.radiusY *
+        (1 - Math.sqrt(Math.max(0, 1 - normalizedX * normalizedX)));
 }
 
 function getCarouselPoint(arc, slot, geometry = carouselState.geometry) {
@@ -773,63 +986,52 @@ function anchorCarouselToBottom(geometry) {
     if (!geometry) return;
     const gridBounds = bookmarkGrid.getBoundingClientRect();
     const tileHalf = geometry.tileDiameter / 2;
-    const labelRoom = getDashboardBookmarkTitleRoom();
-    const occupiedPoints = [...bookmarkGrid.querySelectorAll(":scope > .grid-cell")]
+    const occupiedEntries = [...bookmarkGrid.querySelectorAll(":scope > .grid-cell")]
         .filter(cell => cell.querySelector(".tile:not(.empty-tile)") &&
             !cell.classList.contains("grid-cell--reserve"))
-        .map(cell => geometry.slotMap.get(getDashboardSlotKey(
-            Number(cell.dataset.previewArc ?? cell.dataset.arc),
-            Number(cell.dataset.previewSlot ?? cell.dataset.slot))))
-        .filter(Boolean);
-    if (!occupiedPoints.length) return;
-    const visibleBottom = Math.max(...occupiedPoints.map(point =>
-        gridBounds.top + point.y - point.verticalOffsetY + tileHalf + labelRoom));
+        .map(cell => ({
+            cell,
+            point: geometry.slotMap.get(getDashboardSlotKey(
+                Number(cell.dataset.previewArc ?? cell.dataset.arc),
+                Number(cell.dataset.previewSlot ?? cell.dataset.slot)))
+        }))
+        .filter(entry => entry.point);
+    if (!occupiedEntries.length) return;
+    const getEntryBottom = ({ cell, point }) => {
+        const title = settings.showBookmarkTitles ? cell.querySelector(".tile-title") : null;
+        const titleHeight = title && getComputedStyle(title).display !== "none" ?
+            title.getBoundingClientRect().height : 0;
+        const titleExtent = titleHeight ? 3 + Math.max(0, point.titleOffsetY || 0) + titleHeight : 0;
+        return gridBounds.top + point.y + tileHalf + titleExtent;
+    };
+    const visibleTop = Math.min(...occupiedEntries.map(({ point }) =>
+        gridBounds.top + point.y - tileHalf));
+    const visibleBottom = Math.max(...occupiedEntries.map(getEntryBottom));
     const main = bookmarkGrid.closest("main");
     const bottomReserve = Math.max(0, parseFloat(getComputedStyle(main).paddingBottom) || 0);
-    let verticalShift = window.innerHeight - bottomReserve - 12 - getBookmarkOrbitLift() -
-        visibleBottom;
-    const trigger = document.querySelector(".orbital-search-trigger");
-    if (trigger) {
-        let triggerBounds = trigger.getBoundingClientRect();
-        if (!triggerBounds.width || !triggerBounds.height) {
-            const area = document.querySelector(".orbital-search-area");
-            const styles = getComputedStyle(area);
-            const centerX = parseFloat(styles.getPropertyValue("--search-orbit-x"));
-            const curveTop = parseFloat(styles.getPropertyValue("--search-curve-top"));
-            const triggerTop = parseFloat(styles.getPropertyValue("--search-trigger-top"));
-            const triggerWidth = parseFloat(styles.getPropertyValue("--search-trigger-width"));
-            const triggerHeight = parseFloat(styles.getPropertyValue("--search-trigger-height"));
-            if ([centerX, curveTop, triggerTop, triggerWidth, triggerHeight].every(Number.isFinite)) {
-                triggerBounds = {
-                    left: centerX - triggerWidth / 2,
-                    right: centerX + triggerWidth / 2,
-                    top: curveTop + triggerTop,
-                    bottom: curveTop + triggerTop + triggerHeight
-                };
-            }
-        }
-        const triggerCenterX = (triggerBounds.left + triggerBounds.right) / 2;
-        const collisionWidth = Math.min(120, triggerBounds.right - triggerBounds.left);
-        const collisionLeft = triggerCenterX - collisionWidth / 2;
-        const collisionRight = triggerCenterX + collisionWidth / 2;
-        const pointsAboveSearch = occupiedPoints.filter(point =>
-            gridBounds.left + point.x + tileHalf > collisionLeft &&
-            gridBounds.left + point.x - tileHalf < collisionRight);
-        if (pointsAboveSearch.length) {
-            const searchBottom = Math.max(...pointsAboveSearch.map(point =>
-                gridBounds.top + point.y + tileHalf + labelRoom));
-            verticalShift = Math.min(verticalShift, triggerBounds.top - 6 - searchBottom);
-        }
-    }
-    // Полная дуга уже привязана к низу в getCarouselGeometry; здесь разрешаем
-    // только подъём для защиты от поиска и не опускаем пустые слоты за экран.
-    verticalShift = Math.min(0, verticalShift);
-    if (Math.abs(verticalShift) < .25) return;
-    const visibleTop = Math.min(...occupiedPoints.map(point =>
-        gridBounds.top + point.y - tileHalf));
-    if (verticalShift < 0) {
-        verticalShift = Math.max(verticalShift, -Math.max(0, visibleTop - 12));
-    }
+    const viewportPadding = getCarouselViewportPadding();
+    const viewportTop = getBookmarkSafeViewportTop();
+    const viewportBottom = window.innerHeight - bottomReserve - viewportPadding;
+    const sunGeometry = getOrbitalSunCollisionGeometry();
+    const sunGap = clampOrbitalValue(geometry.tileDiameter * .12, 6, 12) + 2;
+    const sunShifts = sunGeometry ? occupiedEntries.map(entry => {
+        const { point } = entry;
+        const left = gridBounds.left + point.x - tileHalf;
+        const right = gridBounds.left + point.x + tileHalf;
+        const boundaryY = getOrbitalSunBoundaryY(sunGeometry, left, right);
+        return Number.isFinite(boundaryY) ? boundaryY - sunGap - getEntryBottom(entry) : null;
+    }).filter(Number.isFinite) : [];
+    const safeShift = sunShifts.length ? Math.min(...sunShifts) : viewportBottom - visibleBottom;
+    const minimumShift = viewportTop - visibleTop;
+    const maximumShift = viewportBottom - visibleBottom;
+    const boundedSafeShift = clampOrbitalValue(safeShift, minimumShift, maximumShift);
+    const visibleSunTop = sunGeometry?.bounds.top;
+    const remainingVisualGap = Number.isFinite(visibleSunTop) ?
+        visibleSunTop - (visibleBottom + boundedSafeShift) : 0;
+    const targetVisualGap = Math.max(sunGap, remainingVisualGap / 2);
+    const proximityShift = Math.max(0, remainingVisualGap - targetVisualGap);
+    const verticalShift = clampOrbitalValue(boundedSafeShift + proximityShift,
+        minimumShift, maximumShift);
     if (Math.abs(verticalShift) < .25) return;
     geometry.centerY += verticalShift;
     geometry.slotMap.forEach(point => point.y += verticalShift);
@@ -854,7 +1056,10 @@ function alignPlanetOrbitsToBookmarks() {
     planetOrbitAlignmentFrame = 0;
     if (draggingId) return;
     const bookmarkTop = getBookmarkGroupTop();
-    globalThis.planetOrbitLayout?.alignAbove(bookmarkTop, PLANET_ORBIT_BOOKMARK_GAP);
+    const responsiveExtent = Math.min(window.innerWidth, window.innerHeight);
+    const freeSpaceDrop = bookmarksSection.hidden ? responsiveExtent * .075 : 0;
+    const bookmarkGap = responsiveExtent * PLANET_ORBIT_BOOKMARK_GAP_RATIO;
+    globalThis.planetOrbitLayout?.alignAbove(bookmarkTop, bookmarkGap, freeSpaceDrop);
 }
 
 function schedulePlanetOrbitAlignment() {
@@ -892,9 +1097,10 @@ function updateCarouselTransforms() {
         Number(cell.dataset.previewArc ?? cell.dataset.arc) + 1 || 0), geometry.arcs.length);
     if (requiredArcCount > geometry.arcs.length) {
         geometry = getCarouselGeometry(requiredArcCount, bookmarkGrid.clientWidth,
-            geometry.baseTileDiameter, getDashboardActiveArcCount());
+            geometry.baseTileDiameter);
         carouselState.geometry = geometry;
         bookmarkGrid.style.setProperty("--orbit-tile-scale", geometry.tileScale.toFixed(4));
+        bookmarkGrid.style.setProperty("--orbit-title-scale", geometry.titleScale.toFixed(4));
         bookmarkGrid.style.setProperty("--orbit-slot-gap", `${geometry.gap.toFixed(2)}px`);
         bookmarkGrid.style.height = `${geometry.height}px`;
         positionOrbitalSearch();
@@ -948,8 +1154,8 @@ function applyCarouselPanBounds() {
 
 function positionDashboardTiles() {
     orbitalLayoutFrame = 0;
+    positionOrbitalSearch();
     if (bookmarksSection.hidden) {
-        positionOrbitalSearch();
         schedulePlanetOrbitAlignment();
         return;
     }
@@ -965,12 +1171,12 @@ function positionDashboardTiles() {
     const activeArcCount = getDashboardActiveArcCount(previewArc);
     const renderedArcCount = [...bookmarkGrid.querySelectorAll(":scope > .grid-cell")]
         .reduce((maximum, cell) => Math.max(maximum, Number(cell.dataset.arc) + 1 || 0), activeArcCount);
-    const geometry = getCarouselGeometry(renderedArcCount, width, tileDiameter, activeArcCount);
+    const geometry = getCarouselGeometry(renderedArcCount, width, tileDiameter);
     carouselState.geometry = geometry;
     bookmarkGrid.style.setProperty("--orbit-tile-scale", geometry.tileScale.toFixed(4));
+    bookmarkGrid.style.setProperty("--orbit-title-scale", geometry.titleScale.toFixed(4));
     bookmarkGrid.style.setProperty("--orbit-slot-gap", `${geometry.gap.toFixed(2)}px`);
     bookmarkGrid.style.height = `${geometry.height}px`;
-    positionOrbitalSearch();
     anchorCarouselToBottom(geometry);
     applyCarouselPanBounds();
     updateCarouselTransforms();
@@ -1193,6 +1399,8 @@ function createBookmarkTile(item, compact = false) {
         clearDragIndicators();
         dragPreviewIntent = null;
         dragDashboardSnapshot = null;
+        dragFolderSnapshot = null;
+        dragPreviewCandidate = null;
         carouselState.dragAutoX = 0;
         carouselState.dragAutoY = 0;
         draggingId = bookmark.id;
@@ -1288,23 +1496,10 @@ function getOrbitalDropPosition(event, element) {
 
 function setupFolderDropTarget(tile, targetBookmark) {
     tile.addEventListener("dragover", event => {
-        const source = draggingId ? findBookmark(draggingId) : null;
-        if (!source || source.id === targetBookmark.id) return;
+        if (!draggingId) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = "move";
-        clearDragIndicators();
-        const horizontalPosition = getHorizontalDropPosition(event, tile);
-        const folderId = folderPath.at(-1);
-        const isFolderTarget = Array.isArray(targetBookmark.children) &&
-            !folderContains(source, targetBookmark.id);
-        const action = getStableDropAction(folderId, targetBookmark.id, isFolderTarget, horizontalPosition);
-        if (action === "inside") {
-            if (dragPreviewIntent?.key !== `${folderId}:${targetBookmark.id}:inside`) clearSortPreview();
-            tile.classList.add("drag-over");
-        } else {
-            showInsertionPreview(folderId, targetBookmark.id, action === "after");
-        }
-        setDragPreviewAction(folderId, targetBookmark.id, action);
+        applyResolvedDragPreview(resolveFolderDropIntent(event));
     });
     tile.addEventListener("dragleave", event => {
         if (!tile.contains(event.relatedTarget)) {
@@ -1314,22 +1509,7 @@ function setupFolderDropTarget(tile, targetBookmark) {
     tile.addEventListener("drop", async event => {
         event.preventDefault();
         event.stopPropagation();
-        const sourceId = draggingId;
-        const source = sourceId ? findBookmark(sourceId) : null;
-        const horizontalPosition = getHorizontalDropPosition(event, tile);
-        const folderId = folderPath.at(-1);
-        const isFolderTarget = source && Array.isArray(targetBookmark.children) &&
-            source.id !== targetBookmark.id && !folderContains(source, targetBookmark.id);
-        const action = dragPreviewIntent?.containerId === folderId &&
-            dragPreviewIntent?.targetId === targetBookmark.id ? dragPreviewIntent.action :
-            getStableDropAction(folderId, targetBookmark.id, isFolderTarget, horizontalPosition);
-        finishDragSession();
-        if (!source || source.id === targetBookmark.id || !folderPath.length) return;
-        if (action === "inside") {
-            await moveItemIntoFolder(sourceId, targetBookmark.id);
-        } else {
-            await moveItemWithinFolder(sourceId, folderId, targetBookmark.id, action === "after");
-        }
+        await commitResolvedDrop(resolveFolderDropIntent(event));
     });
 }
 
@@ -1692,6 +1872,7 @@ async function moveItemToDashboardSlot(sourceId, arc, slot) {
 }
 
 function renderBookmarks(reuseTiles = false) {
+    positionOrbitalSearch();
     syncAutomaticArcCapacity();
     const previousPositions = reuseTiles && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? new Map([...bookmarkGrid.querySelectorAll(".tile")].map(tile =>
@@ -1741,37 +1922,15 @@ function renderBookmarks(reuseTiles = false) {
             }, emptyButton));
             cell.append(emptyButton);
             cell.addEventListener("dragover", event => {
-                if (!draggingId) return;
-                event.preventDefault();
+                if (!handleDashboardDragOver(event)) return;
                 event.stopPropagation();
-                event.dataTransfer.dropEffect = "move";
-                updateCarouselDragAutoScroll(event.clientX, event.clientY);
-                clearDragIndicators();
-                const previewKey = `dashboard:slot:${position.key}`;
-                if (dragPreviewIntent?.key !== previewKey) {
-                    clearSortPreview();
-                    const sourceCell = getTileSlot([...bookmarkGrid.querySelectorAll(".tile")]
-                        .find(tile => tile.dataset.id === draggingId));
-                    sourceCell?.classList.add("drag-preview-source");
-                    dragPreviewIntent = {
-                        key: previewKey,
-                        containerId: "dashboard",
-                        targetId: null,
-                        action: "slot",
-                        arc: position.arc,
-                        slot: position.slot
-                    };
-                    showDragPlaceholder(cell.getBoundingClientRect());
-                }
-                cell.classList.add("drag-over");
             });
             cell.addEventListener("dragleave", event => {
                 if (!cell.contains(event.relatedTarget)) cell.classList.remove("drag-over");
             });
             cell.addEventListener("drop", async event => {
-                event.preventDefault();
                 event.stopPropagation();
-                await commitInsertionPreview();
+                await handleDashboardDrop(event);
             });
             fragment.append(cell);
             return;
@@ -1793,74 +1952,25 @@ function renderBookmarks(reuseTiles = false) {
         tile.setAttribute("aria-setsize", String(layout.length));
         cell.append(tile);
         cell.addEventListener("dragover", function(event) {
-            const source = draggingId ? findBookmark(draggingId) : null;
-            if (!source || source.id === item.id) return;
-            event.preventDefault();
+            if (!handleDashboardDragOver(event)) return;
             event.stopPropagation();
-            event.dataTransfer.dropEffect = "move";
-            updateCarouselDragAutoScroll(event.clientX, event.clientY);
-            clearDragIndicators();
-            const sequencePosition = getOrbitalDropPosition(event, cell);
-            const isFolderTarget = Array.isArray(bookmark.children) && !folderContains(source, bookmark.id);
-            const action = getStableDropAction("dashboard", bookmark.id, isFolderTarget, sequencePosition);
-            if (action === "inside") {
-                if (dragPreviewIntent?.key !== `dashboard:${bookmark.id}:inside`) clearSortPreview();
-                cell.classList.add("drag-over");
-            } else {
-                showInsertionPreview("dashboard", bookmark.id, action === "after");
-            }
-            setDragPreviewAction("dashboard", bookmark.id, action);
         });
         cell.addEventListener("dragleave", function(event) {
             if (!cell.contains(event.relatedTarget)) cell.classList.remove("drag-over");
         });
         cell.addEventListener("drop", async function(event) {
-            event.preventDefault();
             event.stopPropagation();
-            const sourceId = draggingId;
-            const source = sourceId ? findBookmark(sourceId) : null;
-            const sequencePosition = getOrbitalDropPosition(event, cell);
-            const isFolderTarget = source && Array.isArray(bookmark.children) &&
-                sourceId !== bookmark.id && !folderContains(source, bookmark.id);
-            const action = dragPreviewIntent?.containerId === "dashboard" &&
-                dragPreviewIntent?.targetId === bookmark.id ? dragPreviewIntent.action :
-                getStableDropAction("dashboard", bookmark.id, isFolderTarget, sequencePosition);
-            finishDragSession();
-            if (!source || source.id === bookmark.id) return;
-            if (action === "inside") {
-                await moveItemIntoFolder(sourceId, bookmark.id);
-            } else if (!layout.some(layoutItem => layoutItem.id === sourceId)) {
-                await moveItemToDashboard(sourceId, bookmark.id, undefined, undefined, action === "after");
-            } else {
-                await moveBookmark(sourceId, bookmark.id, undefined, undefined, action === "after");
-            }
+            await handleDashboardDrop(event);
         });
         fragment.append(cell);
     });
     bookmarkGrid.append(fragment);
     positionDashboardTiles();
     bookmarkGrid.ondragover = function(event) {
-        if (event.target !== bookmarkGrid || !draggingId) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "move";
-        updateCarouselDragAutoScroll(event.clientX, event.clientY);
-        const occupiedKeys = new Set(layout.filter(item => item.id !== draggingId)
-            .map(item => getDashboardSlotKey(item.arc, item.slot)));
-        const target = getFirstAvailableDashboardSlot(occupiedKeys);
-        dragPreviewIntent = {
-            key: `dashboard:auto:${target.arc}:${target.slot}`,
-            containerId: "dashboard",
-            targetId: null,
-            action: "slot",
-            arc: target.arc,
-            slot: target.slot
-        };
+        handleDashboardDragOver(event);
     };
     bookmarkGrid.ondrop = async function(event) {
-        if (event.target !== bookmarkGrid || !draggingId) return;
-        event.preventDefault();
-        const sourceId = draggingId;
-        await commitInsertionPreview();
+        await handleDashboardDrop(event);
     };
     if (previousPositions.size) {
         requestAnimationFrame(() => bookmarkGrid.querySelectorAll(".tile").forEach(tile => {
